@@ -5,7 +5,7 @@ import { PlayCircle, Award, Infinity, Smartphone, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosClient from '@/utils/axiosClient';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 interface Props {
     course: ICourse;
@@ -83,7 +83,7 @@ export default function CourseSidebar({ course }: Props) {
 
     return (
         <div className="bg-white border border-gray-200 shadow-lg rounded-lg overflow-hidden sticky top-24">
-            <Toaster />
+
             {/* Thumbnail / Video Preview */}
             <div className="relative aspect-video bg-gray-900 cursor-pointer group">
                 <img

@@ -1,58 +1,76 @@
+'use client';
+
 import Link from 'next/link';
-import { Star } from 'lucide-react';
 import { ICourse } from '@/types';
+import { Star, Users, BookOpen } from 'lucide-react';
 
 interface Props {
     course: ICourse;
 }
 
 export default function CourseCard({ course }: Props) {
-    // Định dạng giá tiền Việt Nam
+    // Helper lấy tên giảng viên an toàn
+    const instructorName = typeof course.instructor === 'object' ? course.instructor.name : 'Giảng viên';
+    const categoryName = typeof course.category === 'object' ? course.category.name : 'General';
+
+    // Format giá tiền
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
     };
 
     return (
-        <Link href={`/course/${course.slug}`} className="group h-full block">
-            <div className="flex flex-col h-full bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300">
-
-                {/* 1. Thumbnail Image */}
-                <div className="relative aspect-video overflow-hidden bg-gray-200">
-                    <img
-                        src={course.thumbnail?.url || 'https://via.placeholder.com/300x200'}
-                        alt={course.title}
-                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-                    />
+        <div className="group bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full">
+            {/* 1. Thumbnail */}
+            <Link href={`/course/${course.slug}`} className="relative block overflow-hidden aspect-video">
+                <img
+                    src={course.thumbnail?.url || 'https://via.placeholder.com/600x400'}
+                    alt={course.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                {/* Badge Danh mục */}
+                <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-xs font-bold px-2 py-1 rounded text-gray-700 shadow-sm">
+                    {categoryName}
                 </div>
+            </Link>
 
-                {/* 2. Content */}
-                <div className="flex flex-col flex-1 p-4">
-                    <h3 className="font-bold text-gray-900 line-clamp-2 group-hover:text-purple-600 transition-colors mb-1">
+            {/* 2. Content */}
+            <div className="p-4 flex flex-col flex-1">
+                <Link href={`/course/${course.slug}`}>
+                    <h3 className="font-bold text-gray-900 line-clamp-2 mb-2 group-hover:text-purple-700 transition-colors h-[3rem]">
                         {course.title}
                     </h3>
+                </Link>
 
-                    <p className="text-xs text-gray-500 mb-2 truncate">
-                        {typeof course.instructor === 'object' ? course.instructor.name : 'Giảng viên'}
-                    </p>
+                <p className="text-xs text-gray-500 mb-3">
+                    Bởi <span className="font-semibold">{instructorName}</span>
+                </p>
 
-                    {/* Rating giả lập (Vì DB chưa có rating) */}
-                    <div className="flex items-center gap-1 mb-2">
-                        <span className="font-bold text-sm text-yellow-700">4.5</span>
-                        <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                                <Star key={star} className={`w-3 h-3 ${star <= 4 ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                            ))}
-                        </div>
-                        <span className="text-xs text-gray-400">(1,234)</span>
+                {/* Rating & Students Info */}
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-4 mt-auto">
+                    <div className="flex items-center gap-1 text-yellow-500 font-bold">
+                        <span className="text-sm">{course.averageRating ? course.averageRating.toFixed(1) : "0.0"}</span>
+                        <Star className="w-3.5 h-3.5 fill-current" />
+                        <span className="text-gray-400 font-normal ml-1">
+                            ({course.ratingCount || 0})
+                        </span>
                     </div>
-
-                    <div className="mt-auto">
-                        <div className="font-bold text-gray-900 text-lg">
-                            {course.price === 0 ? 'Miễn phí' : formatPrice(course.price)}
-                        </div>
+                    <div className="flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5" />
+                        <span>{course.totalStudents || 0} học viên</span>
                     </div>
                 </div>
+
+                <div className="border-t border-gray-100 pt-3 flex items-center justify-between">
+                    <div className="font-bold text-lg text-gray-900">
+                        {course.price === 0 ? <span className="text-green-600">Miễn phí</span> : formatPrice(course.price)}
+                    </div>
+
+                    {/* (Optional) Nút xem nhanh */}
+                    <Link href={`/course/${course.slug}`} className="text-purple-600 font-bold text-sm hover:underline">
+                        Chi tiết
+                    </Link>
+                </div>
             </div>
-        </Link>
+        </div>
     );
 }

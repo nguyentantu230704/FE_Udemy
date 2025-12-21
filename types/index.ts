@@ -15,14 +15,25 @@ export interface IAsset {
     duration?: number; // Chỉ dành cho video
 }
 
-// 3. Kiểu dữ liệu cho Bài học (Lesson)
+// Cập nhật Interface Lesson
 export interface ILesson {
     _id: string;
     title: string;
     slug: string;
-    video?: IAsset;
+
+    // --- PHẦN MỚI ---
+    type: 'video' | 'text' | 'quiz';
+    content?: string; // Cho bài text
+    quizQuestions?: IQuizQuestion[]; // Cho bài quiz
+    // ----------------
+
+    video?: {
+        url: string;
+        public_id: string;
+        duration: number;
+    };
     isPreview: boolean;
-    duration?: number;
+    order?: number;
 }
 
 // 4. Kiểu dữ liệu cho Chương học (Section)
@@ -52,6 +63,10 @@ export interface ICourse {
     updatedAt: string;
 
     progress?: number;
+
+    averageRating?: number; // <--- Thêm
+    ratingCount?: number;
+    totalStudents?: number;
 }
 
 // 6. Kiểu dữ liệu lỗi trả về từ API (để hiển thị thông báo)
@@ -59,4 +74,27 @@ export interface ApiError {
     message: string;
     success?: boolean;
     stack?: string;
+}
+
+// Thêm Interface cho câu hỏi trắc nghiệm
+export interface IQuizQuestion {
+    question: string;
+    options: string[]; // Mảng 4 đáp án
+    correctAnswer: number; // Index 0-3
+}
+
+export interface ICategory {
+    _id: string;
+    name: string;
+    slug: string;
+    createdAt?: string;
+}
+
+export interface IReview {
+    _id: string;
+    user: IUser; // Populate user info
+    course: string;
+    rating: number;
+    comment: string;
+    createdAt: string;
 }
