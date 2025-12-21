@@ -50,6 +50,8 @@ export interface ICourse {
     sections: ISection[];
     isPublished: boolean;
     updatedAt: string;
+
+    progress?: number;
 }
 
 // 6. Kiểu dữ liệu lỗi trả về từ API (để hiển thị thông báo)
