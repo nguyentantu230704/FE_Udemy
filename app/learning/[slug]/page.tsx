@@ -437,9 +437,15 @@ export default function LearningPage() {
                                                                 : <HelpCircle className="w-3 h-3 text-orange-400" />}
 
                                                         <span className="text-xs text-gray-500">
-                                                            {type === 'video' && (lesson.video as any)?.duration
-                                                                ? `${Math.floor((lesson.video as any).duration / 60)} phút`
-                                                                : type === 'text' ? 'Bài đọc' : 'Trắc nghiệm'}
+                                                            {type === 'video' ? (
+                                                                (lesson.video as any)?.duration
+                                                                    ? `${Math.floor((lesson.video as any).duration / 60)} phút`
+                                                                    : 'Video' // Nếu không có duration thì hiện chữ Video thay vì Trắc nghiệm
+                                                            ) : type === 'text' ? (
+                                                                'Bài đọc'
+                                                            ) : (
+                                                                'Trắc nghiệm'
+                                                            )}
                                                         </span>
                                                     </div>
                                                 </div>
