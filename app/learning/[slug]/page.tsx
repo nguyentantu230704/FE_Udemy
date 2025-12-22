@@ -10,6 +10,7 @@ import axiosClient from '@/utils/axiosClient';
 import { ICourse, ILesson, ISection } from '@/types';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
+import confetti from 'canvas-confetti'; //
 
 // --- COMPONENT CON: QUIZ VIEW (Giữ nguyên) ---
 const QuizView = ({ questions, onPass }: { questions: any[], onPass: () => void }) => {
@@ -65,8 +66,8 @@ const QuizView = ({ questions, onPass }: { questions: any[], onPass: () => void 
                                             key={oIdx}
                                             onClick={() => handleSelect(qIdx, oIdx)}
                                             className={`p-3 rounded border cursor-pointer transition flex items-center gap-3 ${answers[qIdx] === oIdx
-                                                    ? 'bg-purple-100 border-purple-500 text-purple-900'
-                                                    : 'bg-white border-gray-200 hover:bg-gray-100'
+                                                ? 'bg-purple-100 border-purple-500 text-purple-900'
+                                                : 'bg-white border-gray-200 hover:bg-gray-100'
                                                 }`}
                                         >
                                             <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${answers[qIdx] === oIdx ? 'border-purple-600 bg-purple-600' : 'border-gray-400'}`}>
@@ -166,13 +167,52 @@ export default function LearningPage() {
         if (params.slug) fetchData();
     }, [params.slug]);
 
+    // --- LOGIC TÍNH TOÁN TIẾN ĐỘ & PHÁO HOA ĐÃ SỬA ---
     useEffect(() => {
         if (!course) return;
-        const totalLessons = course.sections.reduce((acc, sec) => acc + sec.lessons.length, 0);
+
+        // 1. Lấy tất cả ID bài học hợp lệ hiện có trong khóa học
+        const allLessonIds = course.sections.flatMap(sec => sec.lessons.map(l => l._id));
+        const totalLessons = allLessonIds.length;
+
         if (totalLessons === 0) return;
-        const percent = Math.round((completedLessons.length / totalLessons) * 100);
+
+        // 2. Lọc danh sách completedLessons: Chỉ đếm những bài thực sự nằm trong khóa học hiện tại
+        const validCompletedCount = completedLessons.filter(id => allLessonIds.includes(id)).length;
+
+        // 3. Tính phần trăm dựa trên số lượng hợp lệ
+        const percent = Math.round((validCompletedCount / totalLessons) * 100);
         setProgressPercent(percent);
+
+        // 4. Bắn pháo hoa nếu đạt 100%
+        if (percent === 100) {
+            const duration = 3000;
+            const end = Date.now() + duration;
+
+            const frame = () => {
+                confetti({
+                    particleCount: 2,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#a864fd', '#29cdff', '#78ff44', '#ff718d', '#fdff6a']
+                });
+                confetti({
+                    particleCount: 2,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#a864fd', '#29cdff', '#78ff44', '#ff718d', '#fdff6a']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            };
+            frame();
+        }
     }, [completedLessons, course]);
+    // ----------------------------------------------------
 
     const handleLessonComplete = async () => {
         if (!currentLesson || !course) return;
@@ -257,12 +297,12 @@ export default function LearningPage() {
                                     onClick={handleLessonComplete}
                                     disabled={completedLessons.includes(currentLesson._id)}
                                     className={`
-                                        flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition shadow-sm whitespace-nowrap
-                                        ${completedLessons.includes(currentLesson._id)
+                                    flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition shadow-sm whitespace-nowrap
+                                    ${completedLessons.includes(currentLesson._id)
                                             ? 'bg-green-100 text-green-700 cursor-default border border-green-200'
                                             : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:text-purple-600 hover:border-purple-300'
                                         }
-                                    `}
+                                  `}
                                 >
                                     {completedLessons.includes(currentLesson._id) ? (
                                         <><CheckCircle className="w-4 h-4" /> Đã hoàn thành</>
@@ -346,10 +386,10 @@ export default function LearningPage() {
 
                 {/* SIDEBAR (PHẢI) */}
                 <div className={`
-                    w-80 md:w-96 bg-white border-l border-gray-200 flex-shrink-0 flex flex-col
-                    transition-transform duration-300 absolute md:relative right-0 h-full z-20 shadow-2xl md:shadow-none
-                    ${sidebarOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
-                `}>
+          w-80 md:w-96 bg-white border-l border-gray-200 flex-shrink-0 flex flex-col
+          transition-transform duration-300 absolute md:relative right-0 h-full z-20 shadow-2xl md:shadow-none
+          ${sidebarOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
+        `}>
                     <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                         <span className="font-bold text-gray-800">Nội dung khóa học</span>
                         <button onClick={() => setSidebarOpen(false)} className="md:hidden text-gray-500 p-2">X</button>
@@ -375,9 +415,9 @@ export default function LearningPage() {
                                                     if (window.innerWidth < 768) setSidebarOpen(false);
                                                 }}
                                                 className={`
-                                                    px-4 py-3 cursor-pointer flex gap-3 items-start border-b border-gray-100 transition
-                                                    ${isActive ? 'bg-purple-50 border-l-4 border-l-purple-600' : 'hover:bg-gray-50 border-l-4 border-l-transparent'}
-                                                `}
+                            px-4 py-3 cursor-pointer flex gap-3 items-start border-b border-gray-100 transition
+                            ${isActive ? 'bg-purple-50 border-l-4 border-l-purple-600' : 'hover:bg-gray-50 border-l-4 border-l-transparent'}
+                          `}
                                             >
                                                 <div className="mt-0.5 flex-shrink-0">
                                                     {isCompleted ? (
