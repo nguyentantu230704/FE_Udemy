@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     LayoutDashboard, Users, BookOpen, Trash2, Loader2,
-    DollarSign, LogOut, AlertTriangle, X, Plus, Edit, Check,
-    List, Tag // <--- Thêm icon mới
+    DollarSign, LogOut, AlertTriangle, X, Plus, Edit,
+    List, Tag, XCircle
 } from 'lucide-react';
 import axiosClient from '@/utils/axiosClient';
 import toast, { Toaster } from 'react-hot-toast';
-import { IUser, ICategory } from '@/types'; // Nhớ import ICategory
+import { IUser, ICategory } from '@/types';
 
 export default function AdminDashboard() {
     const router = useRouter();
@@ -19,24 +19,33 @@ export default function AdminDashboard() {
     const [stats, setStats] = useState({ totalUsers: 0, totalCourses: 0, totalRevenue: 0 });
     const [users, setUsers] = useState<IUser[]>([]);
 
-    // --- STATE MỚI CHO CATEGORY ---
+    // Category States
     const [categories, setCategories] = useState<ICategory[]>([]);
     const [isCatModalOpen, setIsCatModalOpen] = useState(false);
     const [editingCat, setEditingCat] = useState<ICategory | null>(null);
     const [catFormData, setCatFormData] = useState({ name: '' });
-    // ------------------------------
 
-    // State chung (Modal xóa, User Form...)
+    // User Course Management States
+    const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
+    const [selectedUserForCourses, setSelectedUserForCourses] = useState<IUser | null>(null);
+    const [removingCourse, setRemovingCourse] = useState(false);
+
+    // --- STATE MỚI: CONFIRM DELETE COURSE MODAL ---
+    // Lưu ID khóa học đang chờ xóa để hiển thị modal xác nhận
+    const [courseToDeleteId, setCourseToDeleteId] = useState<string | null>(null);
+    // ---------------------------------------------
+
+    // General Delete Modal State (User/Category)
     const [showDeleteModal, setShowDeleteModal] = useState<{ type: 'user' | 'category', id: string, name: string } | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
+    // User Form States
     const [isUserFormOpen, setIsUserFormOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<IUser | null>(null);
     const [userFormData, setUserFormData] = useState({ name: '', email: '', password: '', role: 'student' });
-
     const [submitting, setSubmitting] = useState(false);
 
-    // 1. Load Dashboard Stats
+    // 1. Init
     useEffect(() => {
         const checkAdminAndFetch = async () => {
             try {
@@ -54,10 +63,10 @@ export default function AdminDashboard() {
         checkAdminAndFetch();
     }, []);
 
-    // 2. Load Data theo Tab
+    // 2. Load Data on Tab Change
     useEffect(() => {
         if (activeTab === 'users') fetchUsers();
-        if (activeTab === 'categories') fetchCategories(); // <--- Fetch danh mục
+        if (activeTab === 'categories') fetchCategories();
     }, [activeTab]);
 
     const fetchUsers = async () => {
@@ -74,7 +83,7 @@ export default function AdminDashboard() {
         } catch (error) { toast.error("Lỗi tải danh mục"); }
     };
 
-    // --- LOGIC USER (Giữ nguyên logic cũ, chỉ đổi tên hàm mở modal cho rõ nghĩa) ---
+    // --- LOGIC USER FORM ---
     const openUserModal = (user: IUser | null = null) => {
         setEditingUser(user);
         setUserFormData(user ? { name: user.name, email: user.email, password: '', role: user.role } : { name: '', email: '', password: '', role: 'student' });
@@ -104,7 +113,7 @@ export default function AdminDashboard() {
         } finally { setSubmitting(false); }
     };
 
-    // --- LOGIC CATEGORY (MỚI) ---
+    // --- LOGIC CATEGORY FORM ---
     const openCatModal = (cat: ICategory | null = null) => {
         setEditingCat(cat);
         setCatFormData({ name: cat ? cat.name : '' });
@@ -117,14 +126,12 @@ export default function AdminDashboard() {
         setSubmitting(true);
         try {
             if (editingCat) {
-                // Update
                 const { data } = await axiosClient.put(`/admin/categories/${editingCat._id}`, catFormData);
                 if (data.success) {
                     toast.success("Cập nhật danh mục thành công!");
                     setCategories(categories.map(c => c._id === editingCat._id ? data.data : c));
                 }
             } else {
-                // Create
                 const { data } = await axiosClient.post('/admin/categories', catFormData);
                 if (data.success) {
                     toast.success("Tạo danh mục mới thành công!");
@@ -137,11 +144,10 @@ export default function AdminDashboard() {
         } finally { setSubmitting(false); }
     };
 
-    // --- LOGIC XÓA CHUNG (USER & CATEGORY) ---
+    // --- LOGIC DELETE USER/CATEGORY ---
     const confirmDelete = async () => {
         if (!showDeleteModal) return;
         setDeletingId(showDeleteModal.id);
-
         try {
             if (showDeleteModal.type === 'user') {
                 await axiosClient.delete(`/admin/users/${showDeleteModal.id}`);
@@ -155,10 +161,49 @@ export default function AdminDashboard() {
             setShowDeleteModal(null);
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Lỗi khi xóa");
+        } finally { setDeletingId(null); }
+    };
+
+    // --- LOGIC GỠ KHÓA HỌC KHỎI USER ---
+    const openUserCourses = (user: IUser) => {
+        setSelectedUserForCourses(user);
+        setIsCourseModalOpen(true);
+    };
+
+    // Hàm 1: Chỉ mở Modal xác nhận
+    const clickRemoveCourse = (courseId: string) => {
+        setCourseToDeleteId(courseId);
+    };
+
+    // Hàm 2: Thực hiện xóa thật (Gọi khi bấm nút Confirm trong Modal)
+    const executeRemoveCourse = async () => {
+        if (!selectedUserForCourses || !courseToDeleteId) return;
+
+        setRemovingCourse(true);
+        try {
+            const { data } = await axiosClient.delete(`/admin/users/${selectedUserForCourses._id}/courses/${courseToDeleteId}`);
+            if (data.success) {
+                toast.success("Đã gỡ khóa học!");
+
+                // Update UI Local
+                const updatedEnrolled = (selectedUserForCourses.enrolledCourses as any[]).filter(
+                    (c: any) => c._id !== courseToDeleteId
+                );
+
+                const updatedUser = { ...selectedUserForCourses, enrolledCourses: updatedEnrolled };
+                setSelectedUserForCourses(updatedUser);
+                setUsers(users.map(u => u._id === selectedUserForCourses._id ? updatedUser : u));
+
+                // Đóng Modal xác nhận
+                setCourseToDeleteId(null);
+            }
+        } catch (error: any) {
+            toast.error("Lỗi khi gỡ khóa học");
         } finally {
-            setDeletingId(null);
+            setRemovingCourse(false);
         }
     };
+    // ------------------------------------
 
     if (loading) return <div className="flex justify-center h-screen items-center"><Loader2 className="animate-spin text-blue-600 w-10 h-10" /></div>;
 
@@ -166,9 +211,9 @@ export default function AdminDashboard() {
         <div className="flex min-h-screen bg-gray-100 font-sans relative">
             <Toaster position="top-right" />
 
-            {/* --- MODAL XÓA CHUNG --- */}
+            {/* --- MODAL 1: XÁC NHẬN XÓA USER/CATEGORY --- */}
             {showDeleteModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
                         <div className="bg-red-100 p-4 rounded-full inline-block mb-4"><AlertTriangle className="w-8 h-8 text-red-600" /></div>
                         <h3 className="text-xl font-bold mb-2">Xác nhận xóa?</h3>
@@ -184,6 +229,38 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             )}
+
+            {/* --- MODAL 2: XÁC NHẬN GỠ KHÓA HỌC (MỚI) --- */}
+            {/* z-index cao hơn Modal Danh sách khóa học (z-50) */}
+            {courseToDeleteId && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center transform scale-100 transition-all">
+                        <div className="bg-orange-100 p-4 rounded-full inline-block mb-4">
+                            <BookOpen className="w-8 h-8 text-orange-600" />
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">Gỡ khóa học?</h3>
+                        <p className="text-gray-500 mb-6 text-sm">
+                            Học viên sẽ mất quyền truy cập vào khóa học này. Bạn có chắc chắn không?
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setCourseToDeleteId(null)}
+                                className="flex-1 py-3 bg-gray-100 font-bold rounded-xl hover:bg-gray-200 transition"
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                onClick={executeRemoveCourse}
+                                disabled={removingCourse}
+                                className="flex-1 py-3 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 flex justify-center items-center gap-2 transition"
+                            >
+                                {removingCourse ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Gỡ bỏ'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* ------------------------------------------- */}
 
             {/* --- MODAL FORM USER --- */}
             {isUserFormOpen && (
@@ -211,7 +288,7 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* --- MODAL FORM CATEGORY (MỚI) --- */}
+            {/* --- MODAL FORM CATEGORY --- */}
             {isCatModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
@@ -222,18 +299,59 @@ export default function AdminDashboard() {
                         <form onSubmit={handleCatSubmit} className="space-y-4">
                             <div>
                                 <label className="block font-bold text-sm mb-1">Tên danh mục</label>
-                                <input
-                                    type="text" required autoFocus
-                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Ví dụ: Lập trình Web"
-                                    value={catFormData.name}
-                                    onChange={e => setCatFormData({ name: e.target.value })}
-                                />
+                                <input type="text" required autoFocus className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" placeholder="Ví dụ: Lập trình Web" value={catFormData.name} onChange={e => setCatFormData({ name: e.target.value })} />
                             </div>
                             <button type="submit" disabled={submitting} className="w-full py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 flex justify-center gap-2">
                                 {submitting && <Loader2 className="w-4 h-4 animate-spin" />} Lưu Danh mục
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* --- MODAL DANH SÁCH KHÓA HỌC CỦA USER --- */}
+            {isCourseModalOpen && selectedUserForCourses && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 max-h-[80vh] flex flex-col">
+                        <div className="flex justify-between items-center mb-4 border-b pb-2">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-800">Khóa học đã mua</h3>
+                                <p className="text-sm text-gray-500">Học viên: {selectedUserForCourses.name}</p>
+                            </div>
+                            <button onClick={() => setIsCourseModalOpen(false)}><X className="w-6 h-6 text-gray-400 hover:text-black" /></button>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1 pr-2">
+                            {selectedUserForCourses.enrolledCourses && selectedUserForCourses.enrolledCourses.length > 0 ? (
+                                <div className="space-y-3">
+                                    {selectedUserForCourses.enrolledCourses.map((c: any) => (
+                                        <div key={c._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                            <div className="flex items-center gap-3">
+                                                <img src={c.thumbnail?.url || 'https://via.placeholder.com/150'} alt="" className="w-12 h-12 rounded object-cover" />
+                                                <div>
+                                                    <p className="font-bold text-sm text-gray-900 line-clamp-1">{c.title}</p>
+                                                    <p className="text-xs text-gray-500">{c.price === 0 ? 'Free' : c.price?.toLocaleString() + 'đ'}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Nút này bây giờ chỉ mở Modal xác nhận, không xóa ngay */}
+                                            <button
+                                                onClick={() => clickRemoveCourse(c._id)}
+                                                className="text-red-500 hover:bg-red-50 p-2 rounded-full transition"
+                                                title="Gỡ khóa học"
+                                            >
+                                                <XCircle className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-10 text-gray-400 flex flex-col items-center">
+                                    <BookOpen className="w-12 h-12 mb-2 opacity-50" />
+                                    <p>Người dùng này chưa mua khóa học nào.</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
@@ -244,7 +362,6 @@ export default function AdminDashboard() {
                 <nav className="flex-1 p-4 space-y-2">
                     <SidebarItem icon={<LayoutDashboard />} label="Tổng quan" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
                     <SidebarItem icon={<Users />} label="Người dùng" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
-                    {/* Thêm tab Danh mục */}
                     <SidebarItem icon={<List />} label="Danh mục" active={activeTab === 'categories'} onClick={() => setActiveTab('categories')} />
                 </nav>
                 <div className="p-4 border-t border-gray-800">
@@ -254,7 +371,6 @@ export default function AdminDashboard() {
 
             {/* Main Content */}
             <div className="flex-1 p-8 overflow-y-auto">
-                {/* --- TAB DASHBOARD --- */}
                 {activeTab === 'dashboard' && (
                     <div className="animate-in fade-in duration-500">
                         <h2 className="text-2xl font-bold text-gray-800 mb-6">Tổng quan hệ thống</h2>
@@ -266,7 +382,6 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                {/* --- TAB USERS --- */}
                 {activeTab === 'users' && (
                     <div className="animate-in fade-in duration-500">
                         <div className="flex justify-between items-center mb-6">
@@ -280,7 +395,7 @@ export default function AdminDashboard() {
                                 <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase text-xs font-bold tracking-wider">
                                     <tr>
                                         <th className="p-4">Thông tin</th>
-                                        <th className="p-4">Email</th>
+                                        <th className="p-4">Khóa học</th>
                                         <th className="p-4">Vai trò</th>
                                         <th className="p-4 text-right">Hành động</th>
                                     </tr>
@@ -288,8 +403,19 @@ export default function AdminDashboard() {
                                 <tbody className="divide-y divide-gray-100">
                                     {users.map((user) => (
                                         <tr key={user._id} className="hover:bg-gray-50 transition-all">
-                                            <td className="p-4 font-semibold text-gray-900">{user.name}</td>
-                                            <td className="p-4 text-gray-600 text-sm">{user.email}</td>
+                                            <td className="p-4 font-semibold text-gray-900">
+                                                <div>{user.name}</div>
+                                                <div className="text-xs text-gray-500 font-normal">{user.email}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <button
+                                                    onClick={() => openUserCourses(user)}
+                                                    className="flex items-center gap-1 text-sm font-bold text-purple-600 hover:underline hover:bg-purple-50 px-2 py-1 rounded"
+                                                >
+                                                    <BookOpen className="w-4 h-4" />
+                                                    {user.enrolledCourses?.length || 0} khóa
+                                                </button>
+                                            </td>
                                             <td className="p-4"><span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${user.role === 'admin' ? 'bg-red-100 text-red-700 border-red-200' : user.role === 'instructor' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-green-100 text-green-700 border-green-200'}`}>{user.role.toUpperCase()}</span></td>
                                             <td className="p-4 text-right flex justify-end gap-2">
                                                 <button onClick={() => openUserModal(user)} className="text-blue-500 hover:bg-blue-50 p-2 rounded-full"><Edit className="w-5 h-5" /></button>
@@ -304,7 +430,6 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                {/* --- TAB CATEGORIES (MỚI) --- */}
                 {activeTab === 'categories' && (
                     <div className="animate-in fade-in duration-500">
                         <div className="flex justify-between items-center mb-6">
@@ -344,7 +469,6 @@ export default function AdminDashboard() {
     );
 }
 
-// Components phụ (Giữ nguyên)
 function SidebarItem({ icon, label, active, onClick }: any) {
     return <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-medium ${active ? 'bg-blue-600 text-white shadow-lg translate-x-1' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>{icon} <span>{label}</span></button>
 }

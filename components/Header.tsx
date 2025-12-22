@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Search, ShoppingCart, Bell, Menu, LogOut, Loader2,
-    LayoutDashboard // <--- Thêm Icon này
+    LayoutDashboard // <--- Đã thêm icon này
 } from 'lucide-react';
 import axiosClient from '@/utils/axiosClient';
 import { IUser } from '@/types';
 import UserAvatar from './UserAvatar';
+import { useCart } from '@/context/CartContext'; // <--- Import Context Giỏ hàng
 
 interface CategorySimple {
     _id: string;
@@ -20,6 +21,8 @@ interface CategorySimple {
 export default function Header() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { cartCount } = useCart(); // <--- Lấy số lượng giỏ hàng từ Context
+
     const [user, setUser] = useState<IUser | null>(null);
     const [keyword, setKeyword] = useState('');
     const [categories, setCategories] = useState<CategorySimple[]>([]);
@@ -44,6 +47,8 @@ export default function Header() {
 
     useEffect(() => {
         loadUserFromStorage();
+
+        // Fetch Categories
         const fetchCategories = async () => {
             try {
                 const { data } = await axiosClient.get('/categories');
@@ -89,6 +94,7 @@ export default function Header() {
                     <button className="text-sm font-medium text-gray-700 hover:text-purple-600 transition h-full flex items-center">
                         Danh mục
                     </button>
+                    {/* Dropdown */}
                     <div className="absolute top-full left-0 pt-0 w-64 hidden group-hover:block transition-all">
                         <div className="bg-white border border-gray-200 shadow-xl rounded-b-md py-2 mt-0">
                             {loadingCats ? (
@@ -122,16 +128,23 @@ export default function Header() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-3">
+                    {/* Link cho Giảng viên */}
                     {user && user.role === 'instructor' && (
                         <Link href="/instructor/courses" className="hidden lg:block text-sm font-medium text-gray-700 hover:text-purple-600">
                             Dạy học trên Udemy
                         </Link>
                     )}
 
-                    <button className="p-2 hover:text-purple-600 relative">
+                    {/* --- CART ICON (Đã tích hợp Context) --- */}
+                    <Link href="/cart" className="p-2 hover:text-purple-600 relative text-gray-600 transition">
                         <ShoppingCart className="w-5 h-5" />
-                        <span className="absolute top-0 right-0 bg-purple-600 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">2</span>
-                    </button>
+                        {cartCount > 0 && (
+                            <span className="absolute top-0 right-0 bg-purple-600 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                                {cartCount}
+                            </span>
+                        )}
+                    </Link>
+                    {/* --------------------------------------- */}
 
                     {user ? (
                         <div className="flex items-center gap-3">
@@ -143,7 +156,7 @@ export default function Header() {
                                 <Bell className="w-5 h-5" />
                             </button>
 
-                            {/* User Menu */}
+                            {/* User Menu Dropdown */}
                             <div className="relative group cursor-pointer h-full flex items-center">
                                 <UserAvatar src={user.avatar} name={user.name} className="w-8 h-8 border-2 border-transparent transition group-hover:border-purple-600" />
 
@@ -160,13 +173,13 @@ export default function Header() {
                                         </div>
 
                                         <div className="py-2">
-                                            {/* --- NÚT ADMIN (CHỈ HIỆN NẾU LÀ ADMIN) --- */}
+                                            {/* --- NÚT ADMIN DASHBOARD (MỚI) --- */}
                                             {user.role === 'admin' && (
                                                 <Link href="/admin" className="flex items-center gap-2 px-4 py-2 hover:bg-purple-50 text-sm font-bold text-purple-700 transition border-b border-gray-100">
                                                     <LayoutDashboard className="w-4 h-4" /> Trang quản trị
                                                 </Link>
                                             )}
-                                            {/* ----------------------------------------- */}
+                                            {/* -------------------------------- */}
 
                                             <Link href="/profile" className="block px-4 py-2 hover:bg-purple-50 text-sm text-gray-700 hover:text-purple-700 transition">
                                                 Hồ sơ cá nhân

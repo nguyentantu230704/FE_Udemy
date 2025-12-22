@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google'; // Font chữ đẹp giống Udemy
 import './globals.css';
 import Header from '../components/Header'; // Import Header
 import Footer from '../components/Footer'; // Import Footer
+import { CartProvider } from '@/context/CartContext'; // Import mới
+
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,17 +21,21 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={inter.className}>
-        {/* Header luôn nằm trên cùng */}
-        <Header />
+        <CartProvider>
+          {/* Header luôn nằm trên cùng */}
+          <Header />
 
-        {/* Phần nội dung chính sẽ thay đổi tùy theo trang */}
-        {/* min-h-screen giúp đẩy Footer xuống đáy nếu nội dung ngắn */}
-        <main className="min-h-screen bg-white text-gray-900">
-          {children}
-        </main>
+          {/* Phần nội dung chính sẽ thay đổi tùy theo trang */}
+          {/* min-h-screen giúp đẩy Footer xuống đáy nếu nội dung ngắn */}
+          <main className="min-h-screen bg-white text-gray-900">
 
-        {/* Footer luôn nằm dưới cùng */}
-        <Footer />
+            {children}
+
+          </main>
+
+          {/* Footer luôn nằm dưới cùng */}
+          <Footer />
+        </CartProvider>
       </body>
     </html>
   );

@@ -58,6 +58,9 @@ export default function CourseDetailPage() {
     const instructorName = typeof course.instructor === 'object' ? course.instructor.name : 'Giảng viên';
     // Helper lấy avatar giảng viên
     const instructorAvatar = typeof course.instructor === 'object' ? course.instructor.avatar : null;
+    // Helper lấy ID giảng viên
+    const instructorId = typeof course.instructor === 'object' ? course.instructor._id : (typeof course.instructor === 'string' ? course.instructor : undefined);
+
 
     // --- LOGIC MỚI: LẤY CHỮ CÁI CỦA TÊN (TỪ CUỐI CÙNG) ---
     const getAvatarLabel = (name: string) => {
@@ -231,7 +234,7 @@ export default function CourseDetailPage() {
 
                         {/* Reviews */}
                         <div className="bg-white border border-gray-200 p-6 md:p-8 rounded-xl shadow-sm">
-                            <ReviewsSection courseId={course._id} />
+                            <ReviewsSection courseId={course._id} instructorId={instructorId} />
                         </div>
                     </div>
 

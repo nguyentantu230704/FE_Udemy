@@ -1,11 +1,11 @@
-'use client'; // Nhớ thêm dòng này vì chúng ta dùng hook
+'use client';
 
 import { ICourse, IUser } from '@/types';
-import { PlayCircle, Award, Infinity, Smartphone, Loader2 } from 'lucide-react';
+import { PlayCircle, Smartphone, Loader2, Award, Infinity, Edit } from 'lucide-react'; // Thêm icon Edit
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosClient from '@/utils/axiosClient';
-import toast from 'react-hot-toast';
+import { useCart } from '@/context/CartContext';
 
 interface Props {
     course: ICourse;
@@ -17,74 +17,64 @@ export default function CourseSidebar({ course }: Props) {
     const [user, setUser] = useState<IUser | null>(null);
     const [isEnrolled, setIsEnrolled] = useState(false);
 
-    // 1. Kiểm tra trạng thái User khi component load
+    const { addToCart } = useCart();
+    const [isInCart, setIsInCart] = useState(false);
+
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             const parsedUser = JSON.parse(storedUser);
             setUser(parsedUser);
-            checkEnrollment(parsedUser._id);
+            checkStatus(parsedUser._id);
         }
     }, []);
 
-    // Hàm kiểm tra xem user đã mua khóa này chưa (Gọi API hoặc check local nếu có lưu)
-    // Ở đây mình check nhanh bằng API getMyCourses hoặc check trong user object nếu bạn có lưu enrolledCourses trong local storage
-    const checkEnrollment = async (userId: string) => {
+    // Helper lấy ID giảng viên an toàn
+    const instructorId = typeof course.instructor === 'object' ? course.instructor._id : course.instructor;
+
+    // --- LOGIC MỚI: KIỂM TRA QUYỀN SỞ HỮU ---
+    // User là chủ sở hữu nếu ID khớp với ID giảng viên của khóa học
+    const isOwner = user && user._id === instructorId;
+    // ----------------------------------------
+
+    const checkStatus = async (userId: string) => {
         try {
-            const { data } = await axiosClient.get('/users/my-courses');
-            if (data.success) {
-                const myCourses = data.data; // Mảng các khóa học object
-                // Kiểm tra xem ID khóa học hiện tại có nằm trong danh sách đã mua ko
-                const found = myCourses.find((c: ICourse) => c._id === course._id);
-                if (found) setIsEnrolled(true);
+            // Check enrolled
+            const { data: enrollData } = await axiosClient.get('/users/my-courses');
+            if (enrollData.success) {
+                if (enrollData.data.find((c: ICourse) => c._id === course._id)) setIsEnrolled(true);
             }
-        } catch (error) {
-            console.error("Lỗi check enrollment");
-        }
+            // Check cart
+            const { data: cartData } = await axiosClient.get('/users/cart');
+            if (cartData.success) {
+                if (cartData.data.find((c: ICourse) => c._id === course._id)) setIsInCart(true);
+            }
+        } catch (error) { console.error("Lỗi check status"); }
     };
 
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
     };
 
-    // 2. Xử lý sự kiện Enroll
-    const handleEnroll = async () => {
-        // Nếu chưa đăng nhập -> đá về Login
-        if (!user) {
-            toast.error("Vui lòng đăng nhập để đăng ký học");
-            router.push('/login');
-            return;
-        }
+    const handleAddToCart = async () => {
+        if (!user) { router.push('/login'); return; }
+        if (isEnrolled || isOwner) return; // Nếu là chủ thì ko cần thêm giỏ
 
-        // Nếu đã mua rồi -> Chuyển sang trang học (Chúng ta sẽ tạo trang này ở bước sau)
-        if (isEnrolled) {
-            router.push(`/learning/${course.slug}`);
-            return;
-        }
-
-        // Logic mua mới
         setLoading(true);
-        try {
-            await axiosClient.post('/users/enroll', { courseId: course._id });
-            toast.success("Đăng ký thành công! Đang vào lớp...");
-            setIsEnrolled(true);
+        const success = await addToCart(course._id);
+        if (success) setIsInCart(true);
+        setLoading(false);
+    };
 
-            // Chuyển hướng sau 1s
-            setTimeout(() => {
-                router.push(`/learning/${course.slug}`);
-            }, 1000);
-
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Lỗi đăng ký");
-        } finally {
-            setLoading(false);
-        }
+    const handleBuyNow = async () => {
+        if (!user) { router.push('/login'); return; }
+        if (!isInCart) await addToCart(course._id);
+        router.push('/cart');
     };
 
     return (
         <div className="bg-white border border-gray-200 shadow-lg rounded-lg overflow-hidden sticky top-24">
-
-            {/* Thumbnail / Video Preview */}
+            {/* Thumbnail */}
             <div className="relative aspect-video bg-gray-900 cursor-pointer group">
                 <img
                     src={course.thumbnail?.url || 'https://via.placeholder.com/600x400'}
@@ -105,44 +95,69 @@ export default function CourseSidebar({ course }: Props) {
                     </span>
                 </div>
 
-                {/* NÚT HÀNH ĐỘNG CHÍNH */}
+                {/* --- KHU VỰC NÚT BẤM (ĐÃ CẬP NHẬT) --- */}
                 <div className="flex flex-col gap-3">
-                    {isEnrolled ? (
-                        <button
-                            onClick={() => router.push(`/learning/${course.slug}`)}
-                            className="w-full bg-gray-900 text-white font-bold py-3 px-4 rounded-md hover:bg-gray-800 transition"
-                        >
-                            Vào học ngay
-                        </button>
-                    ) : (
-                        <button
-                            onClick={handleEnroll}
-                            disabled={loading}
-                            className="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-md hover:bg-purple-700 transition flex justify-center items-center gap-2"
-                        >
-                            {loading ? <Loader2 className="animate-spin" /> : 'Mua ngay'}
-                        </button>
-                    )}
 
-                    {!isEnrolled && (
-                        <button className="w-full bg-white text-gray-900 border border-gray-900 font-bold py-3 px-4 rounded-md hover:bg-gray-50 transition">
-                            Thêm vào giỏ hàng
-                        </button>
+                    {/* TRƯỜNG HỢP 1: Đã mua HOẶC Là Giảng Viên -> Vào học */}
+                    {isEnrolled || isOwner ? (
+                        <>
+                            <button
+                                onClick={() => router.push(`/learning/${course.slug}`)}
+                                className="w-full bg-gray-900 text-white font-bold py-3 px-4 rounded-md hover:bg-gray-800 transition flex justify-center items-center gap-2"
+                            >
+                                <PlayCircle className="w-5 h-5" />
+                                {isOwner ? 'Vào học (Chế độ giảng viên)' : 'Vào học ngay'}
+                            </button>
+
+                            {/* Nếu là giảng viên, hiển thị thêm nút sửa khóa học */}
+                            {isOwner && (
+                                <button
+                                    onClick={() => router.push(`/instructor/courses/${course._id}/manage`)} // Link tới trang quản lý (nếu có)
+                                    className="w-full bg-white text-purple-600 border border-purple-600 font-bold py-3 px-4 rounded-md hover:bg-purple-50 transition flex justify-center items-center gap-2"
+                                >
+                                    <Edit className="w-5 h-5" /> Quản lý khóa học này
+                                </button>
+                            )}
+                        </>
+                    ) : (
+                        // TRƯỜNG HỢP 2: Khách vãng lai -> Mua
+                        <>
+                            <button
+                                onClick={handleBuyNow}
+                                className="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-md hover:bg-purple-700 transition"
+                            >
+                                Mua ngay
+                            </button>
+
+                            {isInCart ? (
+                                <button
+                                    onClick={() => router.push('/cart')}
+                                    className="w-full bg-green-50 text-green-700 border border-green-200 font-bold py-3 px-4 rounded-md hover:bg-green-100 transition"
+                                >
+                                    Đã thêm vào giỏ (Xem)
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleAddToCart}
+                                    disabled={loading}
+                                    className="w-full bg-white text-gray-900 border border-gray-900 font-bold py-3 px-4 rounded-md hover:bg-gray-50 transition flex justify-center items-center gap-2"
+                                >
+                                    {loading ? <Loader2 className="animate-spin w-4 h-4" /> : 'Thêm vào giỏ hàng'}
+                                </button>
+                            )}
+                        </>
                     )}
                 </div>
+                {/* ------------------------------------------- */}
 
                 <p className="text-center text-xs text-gray-500 mt-4">Đảm bảo hoàn tiền trong 30 ngày</p>
 
-                {/* ... (Phần lợi ích bên dưới giữ nguyên) ... */}
                 <div className="mt-6 space-y-3">
                     <h4 className="font-bold text-sm text-gray-900">Khóa học này bao gồm:</h4>
                     <ul className="text-sm text-gray-600 space-y-2">
-                        <li className="flex items-center gap-2">
-                            <PlayCircle className="w-4 h-4" /> Truy cập trọn đời
-                        </li>
-                        <li className="flex items-center gap-2">
-                            <Smartphone className="w-4 h-4" /> Truy cập trên mobile và TV
-                        </li>
+                        <li className="flex items-center gap-2"><Infinity className="w-4 h-4" /> Truy cập trọn đời</li>
+                        <li className="flex items-center gap-2"><Smartphone className="w-4 h-4" /> Truy cập trên mobile và TV</li>
+                        <li className="flex items-center gap-2"><Award className="w-4 h-4" /> Cấp chứng chỉ hoàn thành</li>
                     </ul>
                 </div>
             </div>

@@ -6,6 +6,7 @@ export interface IUser {
     role: 'student' | 'instructor' | 'admin';
     avatar?: string;
     token?: string; // Token chỉ có khi đăng nhập thành công
+    enrolledCourses: (string | ICourse)[];
 }
 
 // 2. Kiểu dữ liệu cho Video & Ảnh (Cloudinary)
@@ -96,5 +97,10 @@ export interface IReview {
     course: string;
     rating: number;
     comment: string;
+    instructorReply?: {
+        user?: IUser;
+        comment: string;
+        updatedAt: string;
+    };
     createdAt: string;
 }
