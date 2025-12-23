@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Star, AlertCircle, Check, Loader2, Globe, BookOpen } from 'lucide-react';
 import axiosClient from '@/utils/axiosClient';
-import { ICourse } from '@/types';
+import { ICourse } from '@/types'; // Nhớ cập nhật interface ICourse thêm objectives?: string[]
 import { Toaster } from 'react-hot-toast';
 
 // Import các component con
@@ -54,31 +54,33 @@ export default function CourseDetailPage() {
 
     const totalLessons = course.sections.reduce((acc, sec) => acc + sec.lessons.length, 0);
 
-    // Helper lấy tên giảng viên
-    const instructorName = typeof course.instructor === 'object' ? course.instructor.name : 'Giảng viên';
-    // Helper lấy avatar giảng viên
-    const instructorAvatar = typeof course.instructor === 'object' ? course.instructor.avatar : null;
-    // Helper lấy ID giảng viên
-    const instructorId = typeof course.instructor === 'object' ? course.instructor._id : (typeof course.instructor === 'string' ? course.instructor : undefined);
+    // --- HELPER LẤY DATA GIẢNG VIÊN ---
+    const instructorObj = typeof course.instructor === 'object' ? course.instructor : null;
+    const instructorName = instructorObj ? instructorObj.name : 'Giảng viên';
+    const instructorAvatar = instructorObj ? instructorObj.avatar : null;
+    const instructorId = instructorObj ? instructorObj._id : (typeof course.instructor === 'string' ? course.instructor : undefined);
 
+    // Lấy Bio và Headline thật (dữ liệu từ populate)
+    // Cần cast kiểu any nếu TS báo lỗi chưa có field bio trong type
+    const instructorBio = instructorObj ? (instructorObj as any).bio : '';
+    const instructorHeadline = instructorObj ? (instructorObj as any).headline : 'Instructor';
 
-    // --- LOGIC MỚI: LẤY CHỮ CÁI CỦA TÊN (TỪ CUỐI CÙNG) ---
+    // --- HELPER FORMAT NGÀY ---
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return `Cập nhật ${date.getMonth() + 1}/${date.getFullYear()}`;
+    };
+
     const getAvatarLabel = (name: string) => {
-        // Tách chuỗi thành mảng các từ dựa vào khoảng trắng
         const parts = name.trim().split(' ');
-        // Nếu mảng có phần tử, lấy phần tử cuối cùng (Tên), rồi lấy ký tự đầu
         if (parts.length > 0) {
             return parts[parts.length - 1].charAt(0).toUpperCase();
         }
-        // Fallback nếu chuỗi rỗng
         return name.charAt(0).toUpperCase();
     };
-    // -----------------------------------------------------
 
     return (
         <div className="bg-gray-50 min-h-screen pb-20">
-
-            {/* TOASTER */}
             <Toaster position="top-center" containerStyle={{ zIndex: 100000 }} />
 
             {/* 1. HERO SECTION */}
@@ -101,18 +103,14 @@ export default function CourseDetailPage() {
                             {course.description}
                         </p>
 
-                        {/* Rating Info & Stats */}
                         <div className="flex flex-wrap items-center gap-4 text-sm">
                             <div className="flex items-center gap-1 bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded font-bold text-xs uppercase tracking-wide">
                                 Bestseller
                             </div>
-
                             <div className="flex items-center gap-1 text-yellow-400">
-                                {/* HIỂN THỊ ĐIỂM TRUNG BÌNH THẬT */}
                                 <span className="font-bold text-base">
                                     {course.averageRating ? course.averageRating.toFixed(1) : "0.0"}
                                 </span>
-
                                 <div className="flex">
                                     {[1, 2, 3, 4, 5].map((_, i) => (
                                         <Star
@@ -122,13 +120,9 @@ export default function CourseDetailPage() {
                                     ))}
                                 </div>
                             </div>
-
-                            {/* HIỂN THỊ SỐ LƯỢNG ĐÁNH GIÁ THẬT */}
                             <span className="text-purple-300 hover:text-purple-200 cursor-pointer underline decoration-1 underline-offset-2">
                                 ({course.ratingCount || 0} đánh giá)
                             </span>
-
-                            {/* Số học viên (Cũng nên lấy từ DB nếu có, tạm thời để course.students.length hoặc giữ nguyên) */}
                             <span className="text-gray-300">• {course.totalStudents || 0} học viên</span>
                         </div>
 
@@ -141,7 +135,8 @@ export default function CourseDetailPage() {
                         <div className="flex flex-wrap items-center gap-6 text-sm text-white font-medium pt-2">
                             <div className="flex items-center gap-2">
                                 <AlertCircle className="w-4 h-4" />
-                                <span>Cập nhật 12/2024</span>
+                                {/* --- SỬA: DÙNG NGÀY CẬP NHẬT THẬT --- */}
+                                <span>{course.updatedAt ? formatDate(course.updatedAt) : 'Mới xuất bản'}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Globe className="w-4 h-4" />
@@ -167,24 +162,24 @@ export default function CourseDetailPage() {
                 <div className="flex flex-col lg:flex-row gap-10 relative">
 
                     <div className="lg:w-2/3 space-y-10">
-                        {/* What you'll learn */}
+
+                        {/* --- SỬA: WHAT YOU'LL LEARN (DỮ LIỆU THẬT) --- */}
                         <div className="bg-white border border-gray-200 p-6 md:p-8 rounded-xl shadow-sm">
                             <h2 className="text-2xl font-bold text-gray-900 mb-6">Bạn sẽ học được gì</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
-                                {[
-                                    "Xây dựng các ứng dụng web thực tế từ con số 0",
-                                    "Làm chủ tư duy lập trình và giải quyết vấn đề",
-                                    "Thành thạo các công nghệ mới nhất hiện nay",
-                                    "Tự tin apply vào các công ty công nghệ lớn",
-                                    "Tối ưu hóa hiệu suất và bảo mật ứng dụng",
-                                    "Làm việc với API và cơ sở dữ liệu chuyên nghiệp"
-                                ].map((item, index) => (
-                                    <div key={index} className="flex gap-3 items-start">
-                                        <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                                        <span className="leading-relaxed">{item}</span>
-                                    </div>
-                                ))}
-                            </div>
+
+                            {/* Kiểm tra nếu có objectives thì map ra, không thì hiện mặc định */}
+                            {course.objectives && course.objectives.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                                    {course.objectives.map((item: string, index: number) => (
+                                        <div key={index} className="flex gap-3 items-start">
+                                            <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                                            <span className="leading-relaxed">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-gray-500 italic">Giảng viên chưa cập nhật mục tiêu khóa học.</p>
+                            )}
                         </div>
 
                         {/* Curriculum */}
@@ -200,11 +195,10 @@ export default function CourseDetailPage() {
                             </div>
                         </div>
 
-                        {/* INSTRUCTOR BIO */}
+                        {/* --- SỬA: INSTRUCTOR BIO (DỮ LIỆU THẬT) --- */}
                         <div className="bg-white border border-gray-200 p-6 md:p-8 rounded-xl shadow-sm">
                             <h2 className="text-2xl font-bold text-gray-900 mb-6">Giảng viên</h2>
                             <div className="flex flex-col sm:flex-row gap-6">
-                                {/* AVATAR AREA */}
                                 <div className="w-28 h-28 bg-purple-100 rounded-full overflow-hidden flex-shrink-0 border-2 border-purple-200 flex items-center justify-center">
                                     {instructorAvatar ? (
                                         <img
@@ -213,7 +207,6 @@ export default function CourseDetailPage() {
                                             className="w-full h-full object-cover"
                                         />
                                     ) : (
-                                        // Sử dụng hàm getAvatarLabel để lấy chữ cái
                                         <span className="text-4xl font-bold text-purple-600 uppercase">
                                             {getAvatarLabel(instructorName)}
                                         </span>
@@ -224,15 +217,25 @@ export default function CourseDetailPage() {
                                     <h3 className="font-bold text-xl text-purple-700 hover:underline cursor-pointer mb-1">
                                         {instructorName}
                                     </h3>
-                                    <p className="text-gray-500 text-sm font-medium mb-4">Senior Developer & Professional Instructor</p>
-                                    <p className="text-gray-700 text-sm leading-relaxed">
-                                        Giảng viên có nhiều năm kinh nghiệm trong lĩnh vực lập trình và đào tạo. Đã từng làm việc tại các tập đoàn lớn và tham gia nhiều dự án thực tế. Phong cách giảng dạy dễ hiểu, tập trung vào thực hành và tư duy giải quyết vấn đề.
+                                    <p className="text-gray-500 text-sm font-medium mb-4">
+                                        {instructorHeadline || 'Giảng viên'}
                                     </p>
+
+                                    {/* Hiển thị Bio thật */}
+                                    <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
+                                        {instructorBio ? instructorBio : (
+                                            <span className="italic text-gray-400">Giảng viên chưa cập nhật giới thiệu.</span>
+                                        )}
+                                    </div>
+
+                                    {/* Link Profile (nếu muốn) */}
+                                    {/* <button className="mt-4 text-purple-600 font-bold text-sm hover:underline">
+                                        Xem hồ sơ chi tiết
+                                    </button> */}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Reviews */}
                         <div className="bg-white border border-gray-200 p-6 md:p-8 rounded-xl shadow-sm">
                             <ReviewsSection courseId={course._id} instructorId={instructorId} />
                         </div>

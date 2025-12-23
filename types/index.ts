@@ -58,7 +58,7 @@ export interface ICourse {
 
     // Category có thể là string (ID) hoặc Object (nếu đã populate)
     category: { _id: string; name: string; slug: string } | string;
-
+    objectives?: string[];
     sections: ISection[];
     isPublished: boolean;
     updatedAt: string;

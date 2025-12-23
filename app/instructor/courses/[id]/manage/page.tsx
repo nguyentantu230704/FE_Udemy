@@ -12,6 +12,8 @@ import axiosClient from '@/utils/axiosClient';
 import { ICourse, ISection, ILesson } from '@/types';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
+import CourseObjectives from '@/components/instructor/CourseObjectives'; // <--- MỚI
+
 
 interface CategorySimple {
     _id: string;
@@ -45,6 +47,9 @@ export default function ManageCoursePage() {
         description: '',
         category: ''
     });
+
+    const [objectives, setObjectives] = useState<string[]>([]);
+
     const [categories, setCategories] = useState<CategorySimple[]>([]);
 
     const [newSectionTitle, setNewSectionTitle] = useState('');
@@ -92,6 +97,7 @@ export default function ManageCoursePage() {
                                 ? realData.category._id
                                 : (typeof realData.category === 'string' ? realData.category : '')
                         });
+                        setObjectives(realData.objectives || []);
                     }
                 }
             }
@@ -112,7 +118,11 @@ export default function ManageCoursePage() {
     const handleSaveInfo = async () => {
         setSavingInfo(true);
         try {
-            const { data } = await axiosClient.put(`/courses/${id}`, formData);
+            const payload = {
+                ...formData,
+                objectives: objectives
+            };
+            const { data } = await axiosClient.put(`/courses/${id}`, payload);
             if (data.success) {
                 toast.success("Cập nhật thông tin thành công!");
                 setCourse(data.data);
@@ -488,7 +498,43 @@ export default function ManageCoursePage() {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mô tả</label>
-                                {isEditing ? <textarea rows={4} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full p-2 border border-gray-300 rounded focus:ring-purple-500 focus:border-purple-500" /> : <p className="text-sm text-gray-600 whitespace-pre-line">{course.description || "Chưa có mô tả"}</p>}
+                                {isEditing ? (
+                                    <>
+                                        <textarea
+                                            rows={4}
+                                            value={formData.description}
+                                            onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                            className="w-full p-2 border border-gray-300 rounded focus:ring-purple-500 focus:border-purple-500"
+                                        />
+
+                                        {/* --- CHÈN COMPONENT MỚI --- */}
+                                        <CourseObjectives
+                                            objectives={objectives}
+                                            setObjectives={setObjectives}
+                                        />
+                                        {/* ------------------------- */}
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="text-sm text-gray-600 whitespace-pre-line">{course.description || "Chưa có mô tả"}</p>
+
+                                        {/* --- HIỂN THỊ MỤC TIÊU --- */}
+                                        {course.objectives && course.objectives.length > 0 && (
+                                            <div className="mt-4 pt-4 border-t border-gray-100">
+                                                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Bạn sẽ học được gì</p>
+                                                <ul className="grid grid-cols-1 gap-2">
+                                                    {course.objectives.map((obj, i) => (
+                                                        <li key={i} className="text-sm text-gray-700 flex gap-2 items-start">
+                                                            <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                                                            <span>{obj}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        {/* ------------------------- */}
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
