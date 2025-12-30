@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import axiosClient from '@/utils/axiosClient';
 import { ICourse } from '@/types';
-import { Trash2, ShoppingCart, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
+import { Trash2, ShoppingCart, ArrowRight, Loader2, AlertTriangle, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import toast from 'react-hot-toast';
@@ -13,10 +13,13 @@ export default function CartPage() {
     const [loading, setLoading] = useState(true);
     const { removeFromCart } = useCart();
 
-    // --- STATE CHO MODAL XÓA ---
+    // --- STATE THANH TOÁN ---
+    const [paymentMethod, setPaymentMethod] = useState<'vnpay' | 'paypal'>('vnpay');
+    const [processing, setProcessing] = useState(false);
+    // ------------------------
+
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
-    // ---------------------------
 
     useEffect(() => {
         loadCartData();
@@ -33,23 +36,17 @@ export default function CartPage() {
         }
     };
 
-    // 1. Hàm mở Modal
     const openDeleteModal = (id: string) => {
         setDeleteId(id);
     };
 
-    // 2. Hàm thực hiện xóa (khi bấm nút Xóa trong Modal)
     const confirmDelete = async () => {
         if (!deleteId) return;
         setDeleting(true);
 
         try {
-            await removeFromCart(deleteId); // Gọi hàm context để update header
-
-            // Cập nhật UI local (xóa item khỏi danh sách đang hiển thị)
+            await removeFromCart(deleteId);
             setCartCourses(prev => prev.filter(c => c._id !== deleteId));
-
-            // Đóng modal
             setDeleteId(null);
         } catch (error) {
             console.error("Lỗi xóa khỏi giỏ hàng");
@@ -58,14 +55,43 @@ export default function CartPage() {
         }
     };
 
+    // --- HÀM XỬ LÝ THANH TOÁN ---
+    const handleCheckout = async () => {
+        if (cartCourses.length === 0) return;
+        setProcessing(true);
+
+        try {
+            // 1. Gọi API tạo Payment Link
+            const { data } = await axiosClient.post('/payment/create', {
+                method: paymentMethod,
+                description: `Thanh toan don hang ${new Date().getTime()}`,
+            });
+
+            // 2. Kiểm tra và Redirect (SỬA LẠI ĐOẠN NÀY)
+            // Backend trả về: { success: true, data: { redirectUrl: '...' } }
+            // Nên cần lấy data.data.redirectUrl
+            if (data.success && data.data && data.data.redirectUrl) {
+                window.location.href = data.data.redirectUrl;
+            } else {
+                toast.error("Không lấy được link thanh toán!");
+                console.error("Phản hồi lỗi từ server:", data);
+            }
+
+        } catch (error: any) {
+            console.error("Lỗi thanh toán:", error);
+            toast.error(error.response?.data?.message || "Lỗi khởi tạo thanh toán");
+        } finally {
+            setProcessing(false);
+        }
+    };
+    // ----------------------------
+
     const totalPrice = cartCourses.reduce((sum, item) => sum + item.price, 0);
 
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin w-8 h-8 text-purple-600" /></div>;
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-10 min-h-screen relative">
-
-            {/* --- MODAL XÁC NHẬN XÓA --- */}
             {deleteId && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center transform scale-100 transition-all">
@@ -77,24 +103,14 @@ export default function CartPage() {
                             Bạn có chắc muốn bỏ khóa học này ra khỏi giỏ hàng không?
                         </p>
                         <div className="flex gap-3">
-                            <button
-                                onClick={() => setDeleteId(null)}
-                                className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition"
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                onClick={confirmDelete}
-                                disabled={deleting}
-                                className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition flex items-center justify-center gap-2"
-                            >
+                            <button onClick={() => setDeleteId(null)} className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition">Hủy</button>
+                            <button onClick={confirmDelete} disabled={deleting} className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition flex items-center justify-center gap-2">
                                 {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Xóa ngay'}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
-            {/* --------------------------- */}
 
             <h1 className="text-3xl font-bold mb-8">Giỏ hàng của bạn</h1>
 
@@ -127,13 +143,7 @@ export default function CartPage() {
                                         <span className="font-bold text-purple-600">
                                             {item.price === 0 ? 'Miễn phí' : item.price.toLocaleString('vi-VN') + ' đ'}
                                         </span>
-
-                                        {/* NÚT XÓA: Gọi hàm mở Modal */}
-                                        <button
-                                            onClick={() => openDeleteModal(item._id)}
-                                            className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition flex items-center gap-1 text-sm font-medium"
-                                            title="Xóa"
-                                        >
+                                        <button onClick={() => openDeleteModal(item._id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition flex items-center gap-1 text-sm font-medium" title="Xóa">
                                             <Trash2 className="w-4 h-4" /> Xóa
                                         </button>
                                     </div>
@@ -154,11 +164,40 @@ export default function CartPage() {
                                 <span className="no-underline ml-2 text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded text-xs">-20%</span>
                             </p>
 
+                            {/* --- PHẦN CHỌN PHƯƠNG THỨC THANH TOÁN --- */}
+                            <div className="mb-6 space-y-3">
+                                <p className="font-bold text-gray-700 text-sm">Chọn phương thức thanh toán:</p>
+
+                                <div
+                                    onClick={() => setPaymentMethod('vnpay')}
+                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${paymentMethod === 'vnpay' ? 'border-purple-600 bg-purple-50' : 'border-gray-200 hover:bg-gray-50'}`}
+                                >
+                                    <div className="w-5 h-5 rounded-full border flex items-center justify-center border-gray-400">
+                                        {paymentMethod === 'vnpay' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
+                                    </div>
+                                    <img src="https://vnpay.vn/assets/images/logo-icon/logo-primary.svg" alt="VNPay" className="h-6 object-contain" />
+                                    <span className="text-sm font-medium">Ví VNPay</span>
+                                </div>
+
+                                <div
+                                    onClick={() => setPaymentMethod('paypal')}
+                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${paymentMethod === 'paypal' ? 'border-purple-600 bg-purple-50' : 'border-gray-200 hover:bg-gray-50'}`}
+                                >
+                                    <div className="w-5 h-5 rounded-full border flex items-center justify-center border-gray-400">
+                                        {paymentMethod === 'paypal' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full" />}
+                                    </div>
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" className="h-5 object-contain" />
+                                    <span className="text-sm font-medium">PayPal</span>
+                                </div>
+                            </div>
+                            {/* ----------------------------------------- */}
+
                             <button
-                                onClick={() => toast("Tính năng thanh toán đang phát triển!")}
-                                className="w-full bg-purple-600 text-white font-bold py-3.5 rounded-lg hover:bg-purple-700 transition flex items-center justify-center gap-2"
+                                onClick={handleCheckout}
+                                disabled={processing}
+                                className="w-full bg-purple-600 text-white font-bold py-3.5 rounded-lg hover:bg-purple-700 transition flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                Thanh toán <ArrowRight className="w-4 h-4" />
+                                {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Thanh toán ngay <ArrowRight className="w-4 h-4" /></>}
                             </button>
                         </div>
                     </div>
