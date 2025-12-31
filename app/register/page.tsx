@@ -24,23 +24,31 @@ export default function RegisterPage() {
         setLoading(true);
 
         try {
-            const { data } = await axiosClient.post<IUser>('/auth/register', {
+            // Gọi API Đăng ký
+            // Lúc này Backend chỉ trả về { success: true, message: "..." }
+            // CHƯA CÓ TOKEN
+            await axiosClient.post('/auth/register', {
                 name,
                 email,
                 password,
                 role: 'student'
             });
 
-            toast.success('Tạo tài khoản thành công!');
-            localStorage.setItem('token', data.token || '');
-            localStorage.setItem('user', JSON.stringify(data));
+            // 1. Thông báo rõ ràng cho người dùng
+            toast.success('Đăng ký thành công! Vui lòng kiểm tra email để kích hoạt tài khoản.');
 
+            // 2. QUAN TRỌNG: Xóa bỏ đoạn lưu token (Vì chưa có token để lưu)
+            // localStorage.setItem('token', ...); <--- XÓA DÒNG NÀY
+            // localStorage.setItem('user', ...);  <--- XÓA DÒNG NÀY
+
+            // 3. Chuyển hướng về trang Đăng nhập (thay vì trang chủ)
+            // Để người dùng chờ kích hoạt xong thì đăng nhập
             setTimeout(() => {
-                window.location.href = '/';
-            }, 800);
+                router.push('/login');
+            }, 2000);
 
         } catch (error) {
-            const err = error as AxiosError<ApiError>;
+            const err = error as any; // Hoặc kiểu AxiosError tùy setup của bạn
             const mess = err.response?.data?.message || 'Có lỗi xảy ra!';
             toast.error(mess);
         } finally {
