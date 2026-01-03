@@ -2,46 +2,62 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart, List, PlusCircle, LogOut, LayoutDashboard } from 'lucide-react';
-import { useRouter } from 'next/navigation'; // Hook điều hướng
-import { IUser } from '@/types'; // Import type User
-
+// 1. Import thêm icon Ticket và DollarSign
+import { BarChart, PlusCircle, LogOut, LayoutDashboard, Ticket, DollarSign } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { IUser } from '@/types';
 
 export default function InstructorLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
     const [authorized, setAuthorized] = useState(false);
 
-
+    // 2. Cập nhật danh sách menu tại đây
     const sidebarItems = [
-        { icon: LayoutDashboard, label: 'Bảng điều khiển', href: '/instructor/courses' },
-        { icon: PlusCircle, label: 'Tạo khóa học mới', href: '/instructor/courses/create' },
-        { icon: BarChart, label: 'Doanh thu (Coming soon)', href: '#' },
+        {
+            icon: LayoutDashboard,
+            label: 'Quản lý khóa học',
+            href: '/instructor/courses'
+        },
+        {
+            icon: PlusCircle,
+            label: 'Tạo khóa học mới',
+            href: '/instructor/courses/create'
+        },
+        {
+            icon: BarChart,
+            label: 'Thống kê doanh thu', // Đã cập nhật link thật
+            href: '/instructor/dashboard'
+        },
+        {
+            icon: Ticket,
+            label: 'Mã giảm giá', // Mới thêm
+            href: '/instructor/coupons'
+        },
+        {
+            icon: DollarSign,
+            label: 'Rút tiền', // Mới thêm
+            href: '/instructor/payouts'
+        },
     ];
 
     useEffect(() => {
-        // 1. Lấy user từ LocalStorage
         const storedUser = localStorage.getItem('user');
 
         if (!storedUser) {
-            // Chưa đăng nhập -> Đá về login
             router.push('/login');
             return;
         }
 
         const user: IUser = JSON.parse(storedUser);
 
-        // 2. Kiểm tra Role
         if (user.role !== 'instructor' && user.role !== 'admin') {
-            // Không phải giảng viên -> Đá về trang chủ
             router.push('/');
         } else {
-            // Cho phép hiển thị
             setAuthorized(true);
         }
     }, []);
 
-    // Nếu chưa check xong quyền thì chưa hiện nội dung (tránh nháy giao diện)
     if (!authorized) return null;
 
     return (
