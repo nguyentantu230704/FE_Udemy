@@ -73,9 +73,9 @@ export default function Curriculum({ sections }: Props) {
                                                 ) : (
                                                     <Lock className="w-3 h-3 text-gray-400" />
                                                 )}
-                                                {lesson.duration && (
+                                                {(lesson.video as any)?.duration && (
                                                     <span className="text-xs text-gray-500">
-                                                        {Math.floor(lesson.duration / 60)}:{(lesson.duration % 60).toString().padStart(2, '0')}
+                                                        {Math.floor((lesson.video as any).duration / 60)}:{((lesson.video as any).duration % 60).toString().padStart(2, '0')}
                                                     </span>
                                                 )}
                                             </div>

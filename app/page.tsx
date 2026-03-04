@@ -172,7 +172,7 @@ export default function Home() {
 
             {/* AT&T */}
             <img
-              src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/AT%26T_logo_2016.svg/1024px-AT%26T_logo_2016.svg.png"
+              src="https://1000logos.net/wp-content/uploads/2016/10/Color-ATT-Logo-500x281.jpg"
               alt="AT&T"
               className="h-10 w-auto object-contain"
             />
