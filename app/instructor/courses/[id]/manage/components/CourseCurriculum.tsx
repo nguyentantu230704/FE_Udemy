@@ -71,7 +71,10 @@ export default function CourseCurriculum({
                                         <div key={lesson._id || lIndex} className="bg-white p-3 rounded border border-gray-100 shadow-sm relative group">
                                             <div className="flex justify-between items-center">
                                                 <div className="flex items-center gap-3">
-                                                    {currentType === 'video' ? <Video className="w-4 h-4 text-purple-600" /> : currentType === 'quiz' ? <HelpCircle className="w-4 h-4 text-orange-500" /> : <FileText className="w-4 h-4 text-blue-500" />}
+                                                    {currentType === 'video' ? <Video className="w-4 h-4 text-purple-600" />
+                                                        : currentType === 'quiz' ? <HelpCircle className="w-4 h-4 text-orange-500" />
+                                                            : currentType === 'document' ? <FileText className="w-4 h-4 text-red-500" /> // <--- Icon màu đỏ cho PDF
+                                                                : <FileText className="w-4 h-4 text-blue-500" />}
                                                     <span className="text-sm font-medium">{lesson.title}</span>
                                                 </div>
                                                 <div className="flex items-center gap-3">
@@ -97,6 +100,21 @@ export default function CourseCurriculum({
                                                         <div className="p-4 prose max-w-none text-sm bg-white">
                                                             <h4 className="font-bold text-gray-800 mb-2 border-b pb-1">Nội dung bài học:</h4>
                                                             <div className="whitespace-pre-wrap text-gray-600">{lesson.content || "Chưa có nội dung."}</div>
+                                                        </div>
+                                                    )}
+
+                                                    {currentType === 'document' && (
+                                                        <div className="p-8 bg-white flex flex-col items-center justify-center">
+                                                            <FileText className="w-12 h-12 text-red-500 mb-3" />
+                                                            <p className="text-gray-800 font-bold mb-1">Tài liệu PDF đính kèm</p>
+                                                            <p className="text-sm text-gray-500 mb-4">Bạn có thể bấm vào nút bên dưới để xem hoặc tải xuống.</p>
+                                                            {lesson.document?.url ? (
+                                                                <a href={lesson.document.url} target="_blank" rel="noopener noreferrer" className="bg-purple-100 text-purple-700 font-bold px-6 py-2 rounded-lg hover:bg-purple-200 transition">
+                                                                    Mở tài liệu
+                                                                </a>
+                                                            ) : (
+                                                                <p className="text-red-500 text-sm">Chưa có file tài liệu.</p>
+                                                            )}
                                                         </div>
                                                     )}
 
@@ -147,25 +165,49 @@ export default function CourseCurriculum({
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Loại bài học</label>
                                         <div className="flex gap-4">
-                                            {['video', 'text', 'quiz'].map((t) => (
+                                            {['video', 'text', 'quiz', 'document'].map((t) => (
                                                 <label key={t} className={`flex items-center gap-2 px-4 py-2 rounded border cursor-pointer transition ${lessonType === t ? 'bg-purple-100 border-purple-500 text-purple-700 font-bold' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                                                    <input type="radio" name="type" value={t} checked={lessonType === t} onChange={() => setLessonType(t as any)} className="hidden" />
-                                                    <span className="capitalize">{t}</span>
+                                                    <input type="radio" name="type" value={t} checked={lessonType === t} onChange={() => {
+                                                        setLessonType(t as any);
+                                                        setLessonFile(null); // <--- Thêm dòng này để reset bộ nhớ file
+                                                    }} className="hidden" />
+                                                    <span className="capitalize">{t === 'document' ? 'PDF' : t}</span>
                                                 </label>
                                             ))}
                                         </div>
                                     </div>
 
-                                    {lessonType === 'video' && (
+                                    {/* Giao diện upload cho Video HOẶC PDF */}
+                                    {(lessonType === 'video' || lessonType === 'document') && (
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Video bài giảng</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                {lessonType === 'video' ? 'Video bài giảng' : 'Tài liệu PDF'}
+                                            </label>
                                             <div onClick={() => lessonInputRef.current?.click()} className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition ${lessonFile ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-purple-400'}`}>
                                                 {!lessonFile ? (
-                                                    <><div className="bg-gray-100 p-3 rounded-full mb-3"><UploadCloud className="w-8 h-8 text-gray-500" /></div><p className="font-medium text-gray-700">Tải video lên</p></>
+                                                    <>
+                                                        <div className="bg-gray-100 p-3 rounded-full mb-3">
+                                                            <UploadCloud className="w-8 h-8 text-gray-500" />
+                                                        </div>
+                                                        <p className="font-medium text-gray-700">
+                                                            {lessonType === 'video' ? 'Tải video lên (.mp4)' : 'Tải tài liệu lên (.pdf)'}
+                                                        </p>
+                                                    </>
                                                 ) : (
-                                                    <><div className="bg-purple-100 p-3 rounded-full mb-3"><FileVideo className="w-8 h-8 text-purple-600" /></div><p className="font-bold text-gray-800 line-clamp-1 text-center">{lessonFile.name}</p></>
+                                                    <>
+                                                        <div className="bg-purple-100 p-3 rounded-full mb-3">
+                                                            {lessonType === 'video' ? <FileVideo className="w-8 h-8 text-purple-600" /> : <FileText className="w-8 h-8 text-purple-600" />}
+                                                        </div>
+                                                        <p className="font-bold text-gray-800 line-clamp-1 text-center">{lessonFile.name}</p>
+                                                    </>
                                                 )}
-                                                <input ref={lessonInputRef} type="file" accept="video/*" className="hidden" onChange={e => setLessonFile(e.target.files?.[0] || null)} />
+                                                <input
+                                                    ref={lessonInputRef}
+                                                    type="file"
+                                                    accept={lessonType === 'video' ? "video/*" : ".pdf,application/pdf"}
+                                                    className="hidden"
+                                                    onChange={e => setLessonFile(e.target.files?.[0] || null)}
+                                                />
                                             </div>
                                         </div>
                                     )}

@@ -23,7 +23,7 @@ export interface ILesson {
     slug: string;
 
     // --- PHẦN MỚI ---
-    type: 'video' | 'text' | 'quiz';
+    type: 'video' | 'text' | 'quiz' | 'document';
     content?: string; // Cho bài text
     quizQuestions?: IQuizQuestion[]; // Cho bài quiz
     // ----------------
@@ -33,6 +33,12 @@ export interface ILesson {
         public_id: string;
         duration: number;
     };
+
+    document?: {
+        url: string;
+        public_id: string;
+    };
+
     isPreview: boolean;
     order?: number;
 }

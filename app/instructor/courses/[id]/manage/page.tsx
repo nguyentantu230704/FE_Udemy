@@ -58,8 +58,7 @@ export default function ManageCoursePage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const lessonInputRef = useRef<HTMLInputElement>(null);
 
-    const [lessonType, setLessonType] = useState<'video' | 'text' | 'quiz'>('video');
-    const [textContent, setTextContent] = useState('');
+    const [lessonType, setLessonType] = useState<'video' | 'text' | 'quiz' | 'document'>('video'); const [textContent, setTextContent] = useState('');
     const [quizQuestions, setQuizQuestions] = useState([{
         question: '',
         options: ['', '', '', ''],
@@ -264,8 +263,8 @@ export default function ManageCoursePage() {
         formData.append('type', lessonType);
         formData.append('isPreview', 'false');
 
-        if (lessonType === 'video') {
-            if (lessonFile) formData.append('video', lessonFile);
+        if (lessonType === 'video' || lessonType === 'document') {
+            if (lessonFile) formData.append('file', lessonFile);
         } else if (lessonType === 'text') {
             formData.append('content', textContent);
         } else if (lessonType === 'quiz') {
@@ -309,7 +308,8 @@ export default function ManageCoursePage() {
     };
 
     const getSmartLessonType = (lesson: any) => {
-        if (lesson.type && ['video', 'text', 'quiz'].includes(lesson.type)) return lesson.type;
+        if (lesson.type && ['video', 'text', 'quiz', 'document'].includes(lesson.type)) return lesson.type;
+        if (lesson.document?.url) return 'document'; // Fallback nhận diện PDF
         if (lesson.content) return 'text';
         if (lesson.quizQuestions && lesson.quizQuestions.length > 0) return 'quiz';
         return 'video';
@@ -322,6 +322,7 @@ export default function ManageCoursePage() {
         }
         if (type === 'text') return 'Bài đọc';
         if (type === 'quiz') return 'Trắc nghiệm';
+        if (type === 'document') return 'Tài liệu PDF';
         return type;
     };
 
