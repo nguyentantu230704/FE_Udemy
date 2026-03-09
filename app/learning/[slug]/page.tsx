@@ -29,6 +29,8 @@ export default function LearningPage() {
     const [completedLessons, setCompletedLessons] = useState<string[]>([]);
     const [progressPercent, setProgressPercent] = useState(0);
 
+    const [certificateId, setCertificateId] = useState<string | null>(null);
+
     // Lấy Data
     useEffect(() => {
         const fetchData = async () => {
@@ -46,6 +48,9 @@ export default function LearningPage() {
                         const { data: progressRes } = await axiosClient.get(`/progress/${courseData._id}`);
                         if (progressRes.success) {
                             setCompletedLessons(progressRes.data.completedLessons);
+                            if (progressRes.data.certificateId) {
+                                setCertificateId(progressRes.data.certificateId);
+                            }
                             if (progressRes.data.lastAccessedLesson) {
                                 for (const sec of courseData.sections) {
                                     const found = sec.lessons.find((l: ILesson) => l._id === progressRes.data.lastAccessedLesson);
@@ -104,10 +109,13 @@ export default function LearningPage() {
         toast.success("Đã hoàn thành bài học!", { icon: '🎉' });
 
         try {
-            await axiosClient.post('/progress/mark-completed', {
+            const { data } = await axiosClient.post('/progress/mark-completed', {
                 courseId: course._id,
                 lessonId: currentLesson._id
             });
+            if (data.certificateId) {
+                setCertificateId(data.certificateId);
+            }
         } catch (error) {
             console.error("Lỗi lưu tiến độ");
         }
@@ -249,9 +257,21 @@ export default function LearningPage() {
                                     Bài tiếp theo <ChevronLeft className="w-5 h-5 rotate-180" />
                                 </button>
                             ) : (
-                                <span className="text-green-600 font-bold flex items-center gap-2 px-4 py-2 bg-green-50 rounded-lg border border-green-200">
-                                    <CheckCircle className="w-5 h-5" /> Bạn đã hoàn thành khóa học!
-                                </span>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <span className="text-green-600 font-bold flex items-center gap-2 px-4 py-2.5 bg-green-50 rounded-lg border border-green-200">
+                                        <CheckCircle className="w-5 h-5" /> Đã hoàn thành khóa học!
+                                    </span>
+
+                                    {/* Nút hiện ra nếu có mã chứng chỉ */}
+                                    {certificateId && (
+                                        <button
+                                            onClick={() => window.open(`/certificate/${certificateId}`, '_blank')}
+                                            className="flex items-center gap-2 px-6 py-2.5 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-bold transition shadow-md animate-in fade-in zoom-in duration-500"
+                                        >
+                                            🏆 Xem chứng chỉ
+                                        </button>
+                                    )}
+                                </div>
                             )}
                         </div>
                     )}
