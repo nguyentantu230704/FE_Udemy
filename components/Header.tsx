@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation'; // <-- ĐÃ XÓA useSearchParams Ở ĐÂY
 import {
     Search, ShoppingCart, Bell, Menu, LogOut, Loader2,
-    LayoutDashboard // <--- Đã thêm icon này
+    LayoutDashboard
 } from 'lucide-react';
 import axiosClient from '@/utils/axiosClient';
 import { IUser } from '@/types';
 import UserAvatar from './UserAvatar';
-import { useCart } from '@/context/CartContext'; // <--- Import Context Giỏ hàng
+import { useCart } from '@/context/CartContext';
 
 interface CategorySimple {
     _id: string;
@@ -20,8 +20,8 @@ interface CategorySimple {
 
 export default function Header() {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const { cartCount } = useCart(); // <--- Lấy số lượng giỏ hàng từ Context
+    // <-- ĐÃ XÓA DÒNG KHAI BÁO searchParams Ở ĐÂY
+    const { cartCount } = useCart();
 
     const [user, setUser] = useState<IUser | null>(null);
     const [keyword, setKeyword] = useState('');
@@ -135,7 +135,7 @@ export default function Header() {
                         </Link>
                     )}
 
-                    {/* --- CART ICON (Đã tích hợp Context) --- */}
+                    {/* --- CART ICON --- */}
                     <Link href="/cart" className="p-2 hover:text-purple-600 relative text-gray-600 transition">
                         <ShoppingCart className="w-5 h-5" />
                         {cartCount > 0 && (
@@ -144,7 +144,6 @@ export default function Header() {
                             </span>
                         )}
                     </Link>
-                    {/* --------------------------------------- */}
 
                     {user ? (
                         <div className="flex items-center gap-3">
@@ -173,13 +172,11 @@ export default function Header() {
                                         </div>
 
                                         <div className="py-2">
-                                            {/* --- NÚT ADMIN DASHBOARD (MỚI) --- */}
                                             {user.role === 'admin' && (
                                                 <Link href="/admin" className="flex items-center gap-2 px-4 py-2 hover:bg-purple-50 text-sm font-bold text-purple-700 transition border-b border-gray-100">
                                                     <LayoutDashboard className="w-4 h-4" /> Trang quản trị
                                                 </Link>
                                             )}
-                                            {/* -------------------------------- */}
 
                                             <Link href="/profile" className="block px-4 py-2 hover:bg-purple-50 text-sm text-gray-700 hover:text-purple-700 transition">
                                                 Hồ sơ cá nhân
