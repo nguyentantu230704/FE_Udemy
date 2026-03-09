@@ -68,10 +68,11 @@ export default function ForgotPasswordPage() {
                             Chúng tôi đã gửi link đặt lại mật khẩu tới <b>{email}</b>.
                         </p>
                         <button
-                            onClick={() => window.open('https://gmail.com', '_blank')}
+                            // Trỏ thẳng link đến trang quản lý inbox của Mailtrap
+                            onClick={() => window.open('https://mailtrap.io/inboxes', '_blank')}
                             className="w-full bg-purple-50 text-purple-700 font-bold py-3 rounded-xl mb-4 hover:bg-purple-100 transition"
                         >
-                            Mở Gmail ngay
+                            Mở Mailtrap kiểm tra
                         </button>
                     </div>
                 )}

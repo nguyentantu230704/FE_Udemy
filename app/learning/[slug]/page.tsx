@@ -2,123 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import {
-    PlayCircle, ChevronLeft, Menu, Loader2, CheckCircle,
-    FileText, HelpCircle, Circle, Trophy, Check, Download
-} from 'lucide-react';
+import { Loader2, FileText, CheckCircle, Check, ChevronLeft } from 'lucide-react';
 import axiosClient from '@/utils/axiosClient';
-import { ICourse, ILesson, ISection } from '@/types';
+import { ICourse, ILesson } from '@/types';
 import toast, { Toaster } from 'react-hot-toast';
-import Link from 'next/link';
-import confetti from 'canvas-confetti'; //
+import confetti from 'canvas-confetti';
 
-// Import thư viện react-pdf và CSS của nó
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
+// Import Components đã tách
+import CourseHeader from './components/CourseHeader';
+import CourseSidebar from './components/CourseSidebar';
+import QuizView from './components/QuizView';
+import DocumentViewer from './components/DocumentViewer';
+import VideoPlayer from './components/VideoPlayer';
 
-// Cấu hình Worker (Bắt buộc để thư viện biết cách đọc file PDF)
-// Sử dụng CDN để tránh lỗi cấu hình Webpack phức tạp trong Next.js
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-
-// --- COMPONENT CON: QUIZ VIEW (Giữ nguyên) ---
-const QuizView = ({ questions, onPass }: { questions: any[], onPass: () => void }) => {
-    const [answers, setAnswers] = useState<number[]>(new Array(questions.length).fill(-1));
-    const [submitted, setSubmitted] = useState(false);
-    const [score, setScore] = useState(0);
-
-    const handleSelect = (qIndex: number, optIndex: number) => {
-        if (submitted) return;
-        const newAns = [...answers];
-        newAns[qIndex] = optIndex;
-        setAnswers(newAns);
-    };
-
-    const handleSubmit = () => {
-        let correct = 0;
-        questions.forEach((q, i) => {
-            if (answers[i] === q.correctAnswer) correct++;
-        });
-        const finalScore = Math.round((correct / questions.length) * 100);
-        setScore(finalScore);
-        setSubmitted(true);
-
-        if (finalScore >= 80) {
-            onPass();
-            toast.success(`Xuất sắc! Bạn đạt ${finalScore}%`);
-        } else {
-            toast.error(`Bạn đạt ${finalScore}%. Cần tối thiểu 80% để qua bài.`);
-        }
-    };
-
-    const handleRetry = () => {
-        setAnswers(new Array(questions.length).fill(-1));
-        setSubmitted(false);
-        setScore(0);
-    };
-
-    return (
-        <div className="max-w-3xl mx-auto p-6 md:p-10">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <HelpCircle className="text-purple-600" /> Bài kiểm tra kiến thức
-                </h2>
-
-                {!submitted ? (
-                    <div className="space-y-8">
-                        {questions.map((q, qIdx) => (
-                            <div key={qIdx} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                                <p className="font-bold text-gray-800 mb-3">Câu {qIdx + 1}: {q.question}</p>
-                                <div className="space-y-2">
-                                    {q.options.map((opt: string, oIdx: number) => (
-                                        <div
-                                            key={oIdx}
-                                            onClick={() => handleSelect(qIdx, oIdx)}
-                                            className={`p-3 rounded border cursor-pointer transition flex items-center gap-3 ${answers[qIdx] === oIdx
-                                                ? 'bg-purple-100 border-purple-500 text-purple-900'
-                                                : 'bg-white border-gray-200 hover:bg-gray-100'
-                                                }`}
-                                        >
-                                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${answers[qIdx] === oIdx ? 'border-purple-600 bg-purple-600' : 'border-gray-400'}`}>
-                                                {answers[qIdx] === oIdx && <div className="w-2 h-2 bg-white rounded-full" />}
-                                            </div>
-                                            {opt}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                        <button
-                            onClick={handleSubmit}
-                            disabled={answers.includes(-1)}
-                            className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition"
-                        >
-                            Nộp bài
-                        </button>
-                    </div>
-                ) : (
-                    <div className="text-center py-10">
-                        <div className="mb-4 inline-block p-4 rounded-full bg-gray-100">
-                            {score >= 80 ? <Trophy className="w-16 h-16 text-yellow-500" /> : <Loader2 className="w-16 h-16 text-gray-400" />}
-                        </div>
-                        <h3 className="text-4xl font-bold text-gray-900 mb-2">{score}%</h3>
-                        <p className={`text-lg mb-8 ${score >= 80 ? 'text-green-600 font-bold' : 'text-red-500'}`}>
-                            {score >= 80 ? 'Bạn đã vượt qua bài kiểm tra!' : 'Chưa đạt yêu cầu. Hãy thử lại nhé.'}
-                        </p>
-
-                        {score < 80 && (
-                            <button onClick={handleRetry} className="bg-gray-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-gray-800 transition">
-                                Làm lại bài thi
-                            </button>
-                        )}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-// --- TRANG CHÍNH ---
 export default function LearningPage() {
     const params = useParams();
     const router = useRouter();
@@ -128,29 +24,18 @@ export default function LearningPage() {
     const [currentLesson, setCurrentLesson] = useState<ILesson | null>(null);
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
+    const [autoAdvance, setAutoAdvance] = useState(true);
+
     const [completedLessons, setCompletedLessons] = useState<string[]>([]);
     const [progressPercent, setProgressPercent] = useState(0);
 
-    // State cho trình đọc PDF
-    const [numPages, setNumPages] = useState<number | null>(null);
-    const [pageNumber, setPageNumber] = useState<number>(1);
-
-    const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-        setNumPages(numPages);
-        setPageNumber(1); // Reset về trang 1 mỗi khi đổi bài học mới
-    };
-
-
+    // Lấy Data
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const { data: courseRes } = await axiosClient.get(`/courses/${params.slug}`);
                 if (courseRes.success) {
                     const courseData = courseRes.data;
-
-                    // --- DEBUG: Log để kiểm tra xem lesson có trường type không ---
-                    console.log("Course Data Loaded:", courseData);
-
                     setCourse(courseData);
 
                     if (courseData.sections.length > 0 && courseData.sections[0].lessons.length > 0) {
@@ -184,54 +69,31 @@ export default function LearningPage() {
         };
 
         if (params.slug) fetchData();
-    }, [params.slug]);
+    }, [params.slug, router]);
 
-    // --- LOGIC TÍNH TOÁN TIẾN ĐỘ & PHÁO HOA ĐÃ SỬA ---
+    // Tính Progress & Pháo hoa
     useEffect(() => {
         if (!course) return;
-
-        // 1. Lấy tất cả ID bài học hợp lệ hiện có trong khóa học
         const allLessonIds = course.sections.flatMap(sec => sec.lessons.map(l => l._id));
         const totalLessons = allLessonIds.length;
-
         if (totalLessons === 0) return;
 
-        // 2. Lọc danh sách completedLessons: Chỉ đếm những bài thực sự nằm trong khóa học hiện tại
         const validCompletedCount = completedLessons.filter(id => allLessonIds.includes(id)).length;
-
-        // 3. Tính phần trăm dựa trên số lượng hợp lệ
         const percent = Math.round((validCompletedCount / totalLessons) * 100);
         setProgressPercent(percent);
 
-        // 4. Bắn pháo hoa nếu đạt 100%
         if (percent === 100) {
             const duration = 3000;
             const end = Date.now() + duration;
 
             const frame = () => {
-                confetti({
-                    particleCount: 2,
-                    angle: 60,
-                    spread: 55,
-                    origin: { x: 0 },
-                    colors: ['#a864fd', '#29cdff', '#78ff44', '#ff718d', '#fdff6a']
-                });
-                confetti({
-                    particleCount: 2,
-                    angle: 120,
-                    spread: 55,
-                    origin: { x: 1 },
-                    colors: ['#a864fd', '#29cdff', '#78ff44', '#ff718d', '#fdff6a']
-                });
-
-                if (Date.now() < end) {
-                    requestAnimationFrame(frame);
-                }
+                confetti({ particleCount: 2, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#a864fd', '#29cdff', '#78ff44', '#ff718d', '#fdff6a'] });
+                confetti({ particleCount: 2, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#a864fd', '#29cdff', '#78ff44', '#ff718d', '#fdff6a'] });
+                if (Date.now() < end) requestAnimationFrame(frame);
             };
             frame();
         }
     }, [completedLessons, course]);
-    // ----------------------------------------------------
 
     const handleLessonComplete = async () => {
         if (!currentLesson || !course) return;
@@ -249,7 +111,11 @@ export default function LearningPage() {
         } catch (error) {
             console.error("Lỗi lưu tiến độ");
         }
-        goToNextLesson();
+
+        // --- CHỈ TỰ ĐỘNG CHUYỂN BÀI NẾU ĐƯỢC BẬT ---
+        if (autoAdvance) {
+            goToNextLesson();
+        }
     };
 
     const goToNextLesson = () => {
@@ -266,6 +132,19 @@ export default function LearningPage() {
         }
     };
 
+    // --- BỔ SUNG LOGIC ĐIỀU HƯỚNG ---
+    const allLessons = course?.sections.flatMap(s => s.lessons) || [];
+    const currentIndex = allLessons.findIndex(l => l._id === currentLesson?._id);
+
+    const prevLesson = currentIndex > 0 ? allLessons[currentIndex - 1] : null;
+    const nextLesson = currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
+
+    const handleNavigate = (lesson: ILesson) => {
+        setCurrentLesson(lesson);
+        // Tự động đóng sidebar trên mobile khi chuyển bài
+        if (window.innerWidth < 768) setSidebarOpen(false);
+    };
+
     const getVideoUrl = (videoData: any) => {
         if (!videoData) return '';
         if (typeof videoData === 'string') return videoData;
@@ -275,27 +154,20 @@ export default function LearningPage() {
 
     const renderLessonContent = () => {
         if (!currentLesson) return <div className="p-20 text-center text-gray-500">Đang tải nội dung...</div>;
-
         const lessonType = currentLesson.type || 'video';
 
         switch (lessonType) {
             case 'video':
                 const videoUrl = getVideoUrl(currentLesson.video);
-                return (
-                    <div className="w-full bg-black aspect-video flex items-center justify-center sticky top-0 z-10 shadow-lg">
-                        {videoUrl ? (
-                            <video
-                                key={currentLesson._id}
-                                src={videoUrl}
-                                controls
-                                autoPlay
-                                className="w-full h-full max-h-[80vh]"
-                                controlsList="nodownload"
-                                onEnded={handleLessonComplete}
-                            />
-                        ) : (
-                            <div className="text-white">Video đang cập nhật...</div>
-                        )}
+                return videoUrl ? (
+                    <VideoPlayer
+                        videoUrl={videoUrl}
+                        lessonId={currentLesson._id}
+                        onEnded={handleLessonComplete}
+                    />
+                ) : (
+                    <div className="w-full bg-black aspect-video flex items-center justify-center text-white">
+                        Video đang cập nhật...
                     </div>
                 );
 
@@ -303,35 +175,18 @@ export default function LearningPage() {
                 return (
                     <div className="flex-1 bg-white overflow-y-auto">
                         <div className="max-w-4xl mx-auto p-8 md:p-12 min-h-[80vh]">
-
-                            {/* --- HEADER CỦA BÀI TEXT (Đã sửa nút bấm lên đây) --- */}
                             <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-100 pb-6 mb-6 gap-4">
                                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
-                                    <FileText className="w-8 h-8 text-blue-600 flex-shrink-0" />
-                                    {currentLesson.title}
+                                    <FileText className="w-8 h-8 text-blue-600 flex-shrink-0" /> {currentLesson.title}
                                 </h1>
-
-                                {/* Nút Đánh dấu hoàn thành nhỏ gọn */}
                                 <button
                                     onClick={handleLessonComplete}
                                     disabled={completedLessons.includes(currentLesson._id)}
-                                    className={`
-                                    flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition shadow-sm whitespace-nowrap
-                                    ${completedLessons.includes(currentLesson._id)
-                                            ? 'bg-green-100 text-green-700 cursor-default border border-green-200'
-                                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:text-purple-600 hover:border-purple-300'
-                                        }
-                                  `}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition shadow-sm whitespace-nowrap ${completedLessons.includes(currentLesson._id) ? 'bg-green-100 text-green-700 cursor-default border border-green-200' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:text-purple-600 hover:border-purple-300'}`}
                                 >
-                                    {completedLessons.includes(currentLesson._id) ? (
-                                        <><CheckCircle className="w-4 h-4" /> Đã hoàn thành</>
-                                    ) : (
-                                        <><Check className="w-4 h-4" /> Đánh dấu đã đọc</>
-                                    )}
+                                    {completedLessons.includes(currentLesson._id) ? <><CheckCircle className="w-4 h-4" /> Đã hoàn thành</> : <><Check className="w-4 h-4" /> Đánh dấu đã đọc</>}
                                 </button>
                             </div>
-                            {/* --------------------------------------------------- */}
-
                             <div className="prose prose-lg max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
                                 {currentLesson.content || "Chưa có nội dung văn bản."}
                             </div>
@@ -343,105 +198,14 @@ export default function LearningPage() {
                 return (
                     <div className="flex-1 bg-gray-50 overflow-y-auto">
                         {currentLesson.quizQuestions && currentLesson.quizQuestions.length > 0 ? (
-                            <QuizView
-                                questions={currentLesson.quizQuestions}
-                                onPass={handleLessonComplete}
-                            />
-                        ) : (
-                            <div className="p-10 text-center text-gray-500">Bài tập đang được cập nhật...</div>
-                        )}
+                            <QuizView questions={currentLesson.quizQuestions} onPass={handleLessonComplete} />
+                        ) : <div className="p-10 text-center text-gray-500">Bài tập đang được cập nhật...</div>}
                     </div>
                 );
+
             case 'document':
-                let docUrl = currentLesson.document?.url;
+                return <DocumentViewer lesson={currentLesson} isCompleted={completedLessons.includes(currentLesson._id)} onComplete={handleLessonComplete} />;
 
-                // Đảm bảo URL hợp lệ
-                if (docUrl && !docUrl.endsWith('.pdf')) {
-                    docUrl += '.pdf';
-                }
-
-                return (
-                    <div className="flex-1 bg-gray-50 overflow-y-auto flex flex-col items-center p-4 md:p-8">
-                        <div className="max-w-5xl w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center mb-8">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">{currentLesson.title}</h2>
-                            <p className="text-gray-600 mb-6 text-sm">Tài liệu đính kèm cho bài học này.</p>
-
-                            {docUrl ? (
-                                <div className="flex flex-col items-center w-full">
-                                    <a
-                                        href={docUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="bg-purple-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-purple-700 transition flex items-center gap-2 shadow-md mb-6"
-                                    >
-                                        <Download className="w-5 h-5" /> Tải tài liệu xuống máy
-                                    </a>
-
-                                    {/* Khung hiển thị PDF bằng react-pdf */}
-                                    <div className="w-full bg-gray-200/50 border border-gray-300 rounded-lg p-4 md:p-8 flex flex-col items-center overflow-x-auto shadow-inner min-h-[500px]">
-                                        <Document
-                                            file={docUrl}
-                                            onLoadSuccess={onDocumentLoadSuccess}
-                                            loading={
-                                                <div className="flex flex-col items-center my-20">
-                                                    <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-4" />
-                                                    <p className="text-gray-500 font-medium">Đang tải tài liệu, vui lòng đợi...</p>
-                                                </div>
-                                            }
-                                            error={<p className="text-red-500 my-20 font-medium bg-red-50 px-6 py-3 rounded-lg">Không thể hiển thị tài liệu. Vui lòng thử tải xuống.</p>}
-                                        >
-                                            <div className="shadow-lg border border-gray-200 bg-white">
-                                                <Page
-                                                    pageNumber={pageNumber}
-                                                    // Đặt chiều rộng tối đa để không bị tràn màn hình
-                                                    width={Math.min(typeof window !== 'undefined' ? window.innerWidth * 0.7 : 800, 1000)}
-                                                    renderTextLayer={true}
-                                                    renderAnnotationLayer={true}
-                                                />
-                                            </div>
-                                        </Document>
-
-                                        {/* Thanh điều khiển tiến lùi trang */}
-                                        {numPages && (
-                                            <div className="flex items-center gap-6 mt-6 bg-white px-6 py-3 rounded-full shadow-sm border border-gray-200">
-                                                <button
-                                                    disabled={pageNumber <= 1}
-                                                    onClick={() => setPageNumber(prev => prev - 1)}
-                                                    className="p-2 bg-gray-100 rounded-full disabled:opacity-40 hover:bg-purple-100 hover:text-purple-700 transition text-gray-700"
-                                                >
-                                                    <ChevronLeft className="w-5 h-5" />
-                                                </button>
-                                                <span className="text-gray-800 font-bold min-w-[100px] text-center">
-                                                    Trang {pageNumber} / {numPages}
-                                                </span>
-                                                <button
-                                                    disabled={pageNumber >= numPages}
-                                                    onClick={() => setPageNumber(prev => prev + 1)}
-                                                    className="p-2 bg-gray-100 rounded-full disabled:opacity-40 hover:bg-purple-100 hover:text-purple-700 transition text-gray-700"
-                                                >
-                                                    <ChevronLeft className="w-5 h-5 rotate-180" />
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="py-20 flex flex-col items-center">
-                                    <Loader2 className="w-10 h-10 text-red-400 animate-spin mb-4" />
-                                    <p className="text-red-500 font-medium">Đang kiểm tra đường dẫn tài liệu...</p>
-                                </div>
-                            )}
-
-                            <button
-                                onClick={handleLessonComplete}
-                                disabled={completedLessons.includes(currentLesson._id)}
-                                className={`mt-10 flex items-center gap-2 px-8 py-3 rounded-lg font-bold text-sm mx-auto transition ${completedLessons.includes(currentLesson._id) ? 'bg-green-100 text-green-700 border border-green-200 cursor-default' : 'bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-purple-600 hover:border-purple-300 shadow-sm'}`}
-                            >
-                                {completedLessons.includes(currentLesson._id) ? <><CheckCircle className="w-5 h-5" /> Đã hoàn thành bài học</> : <><Check className="w-5 h-5" /> Đánh dấu đã học xong</>}
-                            </button>
-                        </div>
-                    </div>
-                );
             default:
                 return <div className="p-10 text-center text-red-500">Định dạng bài học không hỗ trợ.</div>;
         }
@@ -453,122 +217,46 @@ export default function LearningPage() {
     return (
         <div className="fixed inset-0 bg-white z-50 flex flex-col font-sans">
             <Toaster position="bottom-right" />
+            <CourseHeader course={course} currentLesson={currentLesson} progressPercent={progressPercent} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} autoAdvance={autoAdvance}
+                setAutoAdvance={setAutoAdvance} />
 
-            {/* HEADER */}
-            <div className="h-16 bg-gray-900 text-white flex items-center justify-between px-4 md:px-6 flex-shrink-0 shadow-md z-20">
-                <div className="flex items-center gap-4">
-                    <Link href="/my-courses" className="hover:bg-gray-700 p-2 rounded-full transition text-gray-300 hover:text-white">
-                        <ChevronLeft className="w-6 h-6" />
-                    </Link>
-                    <div>
-                        <h1 className="font-bold text-sm md:text-lg line-clamp-1">{course.title}</h1>
-                        <p className="text-xs text-gray-400 hidden md:block">Đang học: {currentLesson?.title}</p>
-                    </div>
-                </div>
-
-                {/* PROGRESS BAR */}
-                <div className="hidden md:flex items-center gap-4">
-                    <div className="flex flex-col items-end">
-                        <span className="text-xs text-gray-300 font-bold">{progressPercent}% hoàn thành</span>
-                    </div>
-                    <div className="w-48 h-2 bg-gray-700 rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-green-500 rounded-full transition-all duration-500 ease-out"
-                            style={{ width: `${progressPercent}%` }}
-                        ></div>
-                    </div>
-                </div>
-
-                <button className="md:hidden p-2" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                    <Menu className="w-6 h-6" />
-                </button>
-            </div>
-
-            {/* BODY */}
             <div className="flex-1 flex overflow-hidden relative">
-
                 {/* VÙNG HIỂN THỊ NỘI DUNG (TRÁI) */}
                 <div className="flex-1 flex flex-col relative bg-gray-100 overflow-hidden">
-                    {renderLessonContent()}
-                </div>
 
-                {/* SIDEBAR (PHẢI) */}
-                <div className={`
-          w-80 md:w-96 bg-white border-l border-gray-200 flex-shrink-0 flex flex-col
-          transition-transform duration-300 absolute md:relative right-0 h-full z-20 shadow-2xl md:shadow-none
-          ${sidebarOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
-        `}>
-                    <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                        <span className="font-bold text-gray-800">Nội dung khóa học</span>
-                        <button onClick={() => setSidebarOpen(false)} className="md:hidden text-gray-500 p-2">X</button>
+                    {/* Khu vực cuộn chứa Nội dung (Video/PDF/Text) */}
+                    <div className="flex-1 overflow-y-auto flex flex-col">
+                        {renderLessonContent()}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto pb-20">
-                        {course.sections.map((section: ISection) => (
-                            <div key={section._id}>
-                                <div className="bg-gray-100 px-4 py-3 text-sm font-bold text-gray-900 border-b border-gray-200 sticky top-0 z-10 truncate">
-                                    {section.title}
-                                </div>
-                                <div>
-                                    {section.lessons.map((lesson: ILesson, lIndex: number) => {
-                                        const isActive = currentLesson?._id === lesson._id;
-                                        const isCompleted = completedLessons.includes(lesson._id);
-                                        const type = lesson.type || 'video';
+                    {/* --- THANH ĐIỀU HƯỚNG BÀI TRƯỚC / BÀI SAU (Luôn hiển thị ở đáy) --- */}
+                    {currentLesson && allLessons.length > 0 && (
+                        <div className="bg-white border-t border-gray-200 p-4 md:px-8 flex items-center justify-between shrink-0 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-20">
+                            {prevLesson ? (
+                                <button
+                                    onClick={() => handleNavigate(prevLesson)}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-bold transition border border-gray-200"
+                                >
+                                    <ChevronLeft className="w-5 h-5" /> Bài trước
+                                </button>
+                            ) : <div />}
 
-                                        return (
-                                            <div
-                                                key={lesson._id}
-                                                onClick={() => {
-                                                    setCurrentLesson(lesson);
-                                                    if (window.innerWidth < 768) setSidebarOpen(false);
-                                                }}
-                                                className={`
-                            px-4 py-3 cursor-pointer flex gap-3 items-start border-b border-gray-100 transition
-                            ${isActive ? 'bg-purple-50 border-l-4 border-l-purple-600' : 'hover:bg-gray-50 border-l-4 border-l-transparent'}
-                          `}
-                                            >
-                                                <div className="mt-0.5 flex-shrink-0">
-                                                    {isCompleted ? (
-                                                        <CheckCircle className="w-5 h-5 text-green-600 fill-green-100" />
-                                                    ) : (
-                                                        <Circle className={`w-5 h-5 ${isActive ? 'text-purple-600' : 'text-gray-300'}`} />
-                                                    )}
-                                                </div>
-
-                                                <div className="flex-1 min-w-0">
-                                                    <p className={`text-sm line-clamp-2 ${isActive ? 'font-bold text-purple-700' : 'text-gray-700'}`}>
-                                                        {lIndex + 1}. {lesson.title}
-                                                    </p>
-                                                    <div className="flex items-center gap-2 mt-1.5">
-                                                        {type === 'video' ? <PlayCircle className="w-3 h-3 text-gray-400" />
-                                                            : type === 'text' ? <FileText className="w-3 h-3 text-blue-400" />
-                                                                : type === 'quiz' ? <HelpCircle className="w-3 h-3 text-orange-400" />
-                                                                    : <Download className="w-3 h-3 text-red-400" /> /* <--- Icon cho PDF */
-                                                        }
-
-                                                        <span className="text-xs text-gray-500">
-                                                            {type === 'video' ? (
-                                                                (lesson.video as any)?.duration
-                                                                    ? `${Math.floor((lesson.video as any).duration / 60)} phút`
-                                                                    : 'Video'
-                                                            ) : type === 'text' ? (
-                                                                'Bài đọc'
-                                                            ) : type === 'quiz' ? (
-                                                                'Trắc nghiệm'
-                                                            ) : (
-                                                                'Tài liệu PDF' /* <--- Text cho PDF */
-                                                            )}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            {nextLesson ? (
+                                <button
+                                    onClick={() => handleNavigate(nextLesson)}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-bold transition shadow-md"
+                                >
+                                    Bài tiếp theo <ChevronLeft className="w-5 h-5 rotate-180" />
+                                </button>
+                            ) : (
+                                <span className="text-green-600 font-bold flex items-center gap-2 px-4 py-2 bg-green-50 rounded-lg border border-green-200">
+                                    <CheckCircle className="w-5 h-5" /> Bạn đã hoàn thành khóa học!
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </div>
+                <CourseSidebar course={course} currentLesson={currentLesson} completedLessons={completedLessons} setCurrentLesson={setCurrentLesson} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
             </div>
         </div>
     );

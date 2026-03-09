@@ -2,16 +2,18 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Save, Lock, AlertTriangle } from 'lucide-react';
+import { Loader2, Save, Lock, MailCheck, ShieldAlert } from 'lucide-react';
 import axiosClient from '@/utils/axiosClient';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function SettingsPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-    // Chỉ giữ lại State cho mật khẩu
+    // Quản lý các bước: 1 = Nhập pass, 2 = Nhập OTP
+    const [step, setStep] = useState(1);
+    const [otp, setOtp] = useState('');
+
     const [passwords, setPasswords] = useState({
         currentPassword: '',
         newPassword: '',
@@ -22,51 +24,67 @@ export default function SettingsPage() {
         setPasswords({ ...passwords, [e.target.name]: e.target.value });
     };
 
-    // 1. Validate và mở Modal
-    const handlePreSubmit = (e: React.FormEvent) => {
+    // BƯỚC 1: Validate và Gửi yêu cầu lấy mã OTP
+    const handleRequestOTP = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (passwords.newPassword !== passwords.confirmPassword) {
             toast.error("Mật khẩu mới không khớp!");
             return;
         }
-
         if (passwords.newPassword.length < 6) {
             toast.error("Mật khẩu phải có ít nhất 6 ký tự");
             return;
         }
 
-        setShowConfirmModal(true);
+        setLoading(true);
+        try {
+            // Gọi API kiểm tra pass cũ và gửi OTP về Mailtrap
+            const { data } = await axiosClient.post('/users/request-change-password', {
+                currentPassword: passwords.currentPassword
+            });
+
+            if (data.success) {
+                toast.success("Mã OTP đã được gửi đến email của bạn!");
+                setStep(2); // Chuyển sang giao diện nhập OTP
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Mật khẩu hiện tại không đúng!");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    // 2. Gọi API Đổi mật khẩu
-    const handleConfirmChange = async () => {
-        setShowConfirmModal(false);
-        setLoading(true);
+    // BƯỚC 2: Gửi mã OTP và Mật khẩu mới để xác nhận đổi
+    const handleVerifyOTP = async () => {
+        if (otp.length !== 6) {
+            toast.error("Vui lòng nhập đủ 6 số OTP");
+            return;
+        }
 
+        setLoading(true);
         try {
-            const { data } = await axiosClient.put('/users/change-password', {
-                currentPassword: passwords.currentPassword,
+            const { data } = await axiosClient.put('/users/verify-change-password', {
+                otp,
                 newPassword: passwords.newPassword
             });
 
             if (data.success) {
                 toast.success("Đổi mật khẩu thành công! Vui lòng đăng nhập lại.");
-
-                // Reset form
+                setStep(1);
                 setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                setOtp('');
 
                 // Đăng xuất người dùng để bảo mật
                 localStorage.removeItem('user');
-                localStorage.removeItem('token'); // Nếu bạn lưu token riêng
+                localStorage.removeItem('token');
 
-                // Chuyển hướng về login sau 2s
                 setTimeout(() => {
                     window.location.href = '/login';
                 }, 2000);
             }
         } catch (error: any) {
-            toast.error(error.response?.data?.message || "Lỗi đổi mật khẩu");
+            toast.error(error.response?.data?.message || "Mã OTP không đúng hoặc đã hết hạn");
         } finally {
             setLoading(false);
         }
@@ -76,31 +94,54 @@ export default function SettingsPage() {
         <div className="max-w-4xl mx-auto px-4 py-10 relative">
             <Toaster position='top-right' />
 
-            {/* --- MODAL XÁC NHẬN --- */}
-            {showConfirmModal && (
+            {/* --- MODAL NHẬP MÃ OTP --- */}
+            {step === 2 && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
-                        <div className="bg-yellow-100 p-4 rounded-full inline-block mb-4">
-                            <Lock className="w-8 h-8 text-yellow-600" />
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center relative overflow-hidden">
+                        {/* Background decoration */}
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+
+                        <div className="bg-purple-100 p-4 rounded-full inline-block mb-4 shadow-inner">
+                            <MailCheck className="w-10 h-10 text-purple-600" />
                         </div>
-                        <h3 className="text-xl font-bold mb-2 text-gray-900">Xác nhận đổi mật khẩu?</h3>
-                        <p className="text-gray-500 mb-6 text-sm">
-                            Bạn sẽ phải đăng nhập lại trên tất cả các thiết bị sau khi thực hiện thay đổi này.
+                        <h3 className="text-2xl font-bold mb-2 text-gray-900">Xác thực Email</h3>
+                        <p className="text-gray-500 mb-6 text-sm px-4">
+                            Chúng tôi vừa gửi một mã OTP gồm 6 số đến email của bạn. Vui lòng kiểm tra hộp thư Mailtrap.
                         </p>
+
+                        <div className="mb-6">
+                            <input
+                                type="text"
+                                maxLength={6}
+                                placeholder="• • • • • •"
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))} // Chỉ cho nhập số
+                                className="w-full text-center text-3xl tracking-[0.5em] font-bold text-gray-800 p-4 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none transition placeholder:text-gray-300 placeholder:tracking-normal"
+                            />
+                        </div>
+
                         <div className="flex gap-3">
                             <button
-                                onClick={() => setShowConfirmModal(false)}
+                                onClick={() => { setStep(1); setOtp(''); }}
                                 className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition"
                             >
-                                Hủy
+                                Hủy bỏ
                             </button>
                             <button
-                                onClick={handleConfirmChange}
-                                className="flex-1 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition flex justify-center items-center gap-2"
+                                onClick={handleVerifyOTP}
+                                disabled={otp.length !== 6 || loading}
+                                className="flex-1 py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-200"
                             >
-                                {loading ? <Loader2 className="animate-spin w-4 h-4" /> : 'Đồng ý'}
+                                {loading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Xác nhận OTP'}
                             </button>
                         </div>
+
+                        <button
+                            onClick={() => window.open('https://mailtrap.io/inboxes', '_blank')}
+                            className="mt-6 text-sm font-bold text-purple-600 hover:text-purple-800 underline underline-offset-4"
+                        >
+                            Mở Mailtrap kiểm tra
+                        </button>
                     </div>
                 </div>
             )}
@@ -110,11 +151,11 @@ export default function SettingsPage() {
 
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
                 <div className="p-8">
-                    <form onSubmit={handlePreSubmit} className="max-w-xl">
+                    <form onSubmit={handleRequestOTP} className="max-w-xl">
 
                         <div className="grid gap-6">
                             <h3 className="font-bold text-lg flex items-center gap-2 text-gray-800 border-b pb-2">
-                                <Lock className="w-5 h-5 text-purple-600" /> Đổi mật khẩu
+                                <ShieldAlert className="w-5 h-5 text-purple-600" /> Đổi mật khẩu an toàn (2FA)
                             </h3>
 
                             {/* Mật khẩu cũ */}
@@ -161,32 +202,19 @@ export default function SettingsPage() {
                         </div>
 
                         {/* Submit Button */}
-                        <div className="flex justify-end pt-8">
+                        {/* Submit Button */}
+                        <div className="pt-8">
                             <button
                                 type="submit" disabled={loading}
-                                className="bg-purple-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-purple-700 transition flex items-center gap-2 shadow-lg shadow-purple-200"
+                                className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 transition flex items-center justify-center gap-2 shadow-lg shadow-purple-200"
                             >
                                 {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Save className="w-5 h-5" />}
-                                Cập nhật mật khẩu
+                                Lưu & Nhận mã OTP
                             </button>
                         </div>
 
                     </form>
                 </div>
-            </div>
-
-            {/* Phần Danger Zone (Ví dụ xóa tài khoản - Có thể phát triển sau) */}
-            <div className="mt-8 border border-red-200 bg-red-50 rounded-xl p-6 flex justify-between items-center opacity-80 hover:opacity-100 transition">
-                <div>
-                    <h4 className="text-red-700 font-bold">Xóa tài khoản</h4>
-                    <p className="text-red-500 text-sm">Hành động này không thể hoàn tác. Mọi khóa học sẽ bị mất.</p>
-                </div>
-                <button
-                    onClick={() => toast("Tính năng đang phát triển")}
-                    className="text-red-600 border border-red-300 bg-white hover:bg-red-50 font-bold py-2 px-4 rounded-lg text-sm transition"
-                >
-                    Xóa tài khoản
-                </button>
             </div>
         </div>
     );
