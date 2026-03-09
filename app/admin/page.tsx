@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import axiosClient from '@/utils/axiosClient';
@@ -13,12 +14,8 @@ import UsersTab from './components/UsersTab';
 import CategoriesTab from './components/CategoriesTab';
 import CoursesTab from './components/CoursesTab';
 
-
-// (Bạn có thể tách UsersTab và CategoriesTab tương tự nếu muốn code gọn hơn nữa)
-// Ở đây tôi giữ lại logic User/Category cũ của bạn trong file này để tránh việc refactor quá nhiều 1 lúc gây lỗi, 
-// nhưng cấu trúc đã sẵn sàng để tách tiếp.
-
-export default function AdminDashboard() {
+// 1. ĐỔI TÊN HÀM CŨ THÀNH AdminContent (Bỏ chữ export default đi)
+function AdminContent() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('dashboard');
     const [stats, setStats] = useState({ totalUsers: 0, totalCourses: 0, totalRevenue: 0, totalProfit: 0, pendingPayouts: 0 });
@@ -46,32 +43,34 @@ export default function AdminDashboard() {
         <div className="flex min-h-screen bg-gray-100 font-sans">
             <Toaster position="top-right" />
 
-            {/* 1. SIDEBAR COMPONENT */}
+            {/* SIDEBAR COMPONENT */}
             <AdminSidebar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 pendingPayouts={stats.pendingPayouts}
             />
 
-            {/* 2. MAIN CONTENT */}
+            {/* MAIN CONTENT */}
             <div className="flex-1 p-8 overflow-y-auto">
-
-                {activeTab === 'dashboard' && (
-                    <AdminStats stats={stats} />
-                )}
-
-                {activeTab === 'payouts' && (
-                    <PayoutsTab onUpdateStats={fetchStats} />
-                )}
-
+                {activeTab === 'dashboard' && <AdminStats stats={stats} />}
+                {activeTab === 'payouts' && <PayoutsTab onUpdateStats={fetchStats} />}
                 {activeTab === 'users' && <UsersTab />}
-
                 {activeTab === 'categories' && <CategoriesTab />}
-
                 {activeTab === 'courses' && <CoursesTab />}
-
-
             </div>
         </div>
+    );
+}
+
+// 2. TẠO HÀM AdminDashboard MỚI ĐỂ BỌC SUSPENSE BÊN NGOÀI
+export default function AdminDashboard() {
+    return (
+        <Suspense fallback={
+            <div className="flex justify-center h-screen items-center bg-gray-100">
+                <Loader2 className="animate-spin text-blue-600 w-10 h-10" />
+            </div>
+        }>
+            <AdminContent />
+        </Suspense>
     );
 }
