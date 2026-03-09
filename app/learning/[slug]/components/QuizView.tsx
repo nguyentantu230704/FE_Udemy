@@ -6,9 +6,11 @@ import { IQuizQuestion } from '@/types';
 interface Props {
     questions: IQuizQuestion[];
     onPass: () => void;
+    passPercent?: number; // <-- 1. Thêm Prop này
 }
 
-export default function QuizView({ questions, onPass }: Props) {
+// 2. Nhận passPercent từ parent, nếu parent không truyền thì mặc định là 80
+export default function QuizView({ questions, onPass, passPercent = 80 }: Props) {
     const [answers, setAnswers] = useState<number[]>(new Array(questions.length).fill(-1));
     const [submitted, setSubmitted] = useState(false);
     const [score, setScore] = useState(0);
@@ -29,11 +31,12 @@ export default function QuizView({ questions, onPass }: Props) {
         setScore(finalScore);
         setSubmitted(true);
 
-        if (finalScore >= 80) {
+        // 3. Thay thế toàn bộ số 80 cứng nhắc thành biến passPercent
+        if (finalScore >= passPercent) {
             onPass();
             toast.success(`Xuất sắc! Bạn đạt ${finalScore}%`);
         } else {
-            toast.error(`Bạn đạt ${finalScore}%. Cần tối thiểu 80% để qua bài.`);
+            toast.error(`Bạn đạt ${finalScore}%. Cần tối thiểu ${passPercent}% để qua bài.`);
         }
     };
 
@@ -46,9 +49,15 @@ export default function QuizView({ questions, onPass }: Props) {
     return (
         <div className="max-w-3xl mx-auto p-6 md:p-10">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <HelpCircle className="text-purple-600" /> Bài kiểm tra kiến thức
-                </h2>
+                <div className="flex justify-between items-center mb-6 border-b pb-4">
+                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <HelpCircle className="text-purple-600" /> Bài kiểm tra kiến thức
+                    </h2>
+                    {/* Hiển thị yêu cầu điểm đỗ cho học viên biết */}
+                    <span className="bg-purple-100 text-purple-700 text-sm font-bold px-3 py-1 rounded-full">
+                        Học viên đạt khi làm đúng: {passPercent}%
+                    </span>
+                </div>
 
                 {!submitted ? (
                     <div className="space-y-8">
@@ -85,14 +94,14 @@ export default function QuizView({ questions, onPass }: Props) {
                 ) : (
                     <div className="text-center py-10">
                         <div className="mb-4 inline-block p-4 rounded-full bg-gray-100">
-                            {score >= 80 ? <Trophy className="w-16 h-16 text-yellow-500" /> : <Loader2 className="w-16 h-16 text-gray-400" />}
+                            {score >= passPercent ? <Trophy className="w-16 h-16 text-yellow-500" /> : <Loader2 className="w-16 h-16 text-gray-400" />}
                         </div>
                         <h3 className="text-4xl font-bold text-gray-900 mb-2">{score}%</h3>
-                        <p className={`text-lg mb-8 ${score >= 80 ? 'text-green-600 font-bold' : 'text-red-500'}`}>
-                            {score >= 80 ? 'Bạn đã vượt qua bài kiểm tra!' : 'Chưa đạt yêu cầu. Hãy thử lại nhé.'}
+                        <p className={`text-lg mb-8 ${score >= passPercent ? 'text-green-600 font-bold' : 'text-red-500'}`}>
+                            {score >= passPercent ? 'Bạn đã vượt qua bài kiểm tra!' : 'Chưa đạt yêu cầu. Hãy thử lại nhé.'}
                         </p>
 
-                        {score < 80 && (
+                        {score < passPercent && (
                             <button onClick={handleRetry} className="bg-gray-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-gray-800 transition">
                                 Làm lại bài thi
                             </button>

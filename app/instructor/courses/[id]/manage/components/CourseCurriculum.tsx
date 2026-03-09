@@ -37,6 +37,8 @@ interface Props {
     newSectionTitle: string;
     setNewSectionTitle: (val: string) => void;
     handleAddSection: () => void;
+    passPercent: number;
+    setPassPercent: (val: number) => void;
 }
 
 export default function CourseCurriculum({
@@ -46,7 +48,7 @@ export default function CourseCurriculum({
     lessonTitle, setLessonTitle, lessonType, setLessonType,
     lessonFile, setLessonFile, lessonInputRef,
     textContent, setTextContent, quizQuestions, setQuizQuestions, handleQuizChange, handleDeleteQuestion, handleAddQuestion,
-    uploadingLesson, isAddingSection, setIsAddingSection, newSectionTitle, setNewSectionTitle, handleAddSection
+    uploadingLesson, isAddingSection, setIsAddingSection, newSectionTitle, setNewSectionTitle, handleAddSection, passPercent, setPassPercent
 }: Props) {
     // --- STATE CHO AI QUIZ ---
     const [aiPrompt, setAiPrompt] = useState('');
@@ -299,6 +301,25 @@ export default function CourseCurriculum({
                                                 </button>
                                             </div>
                                             {/* -------------------------------------- */}
+
+                                            {/* Ô CHỌN TỈ LỆ ĐỖ */}
+                                            <div className="mb-4 bg-white p-4 rounded border border-gray-200 flex items-center justify-between shadow-sm">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-800">Tỉ lệ điểm cần đạt để qua bài</label>
+                                                    <p className="text-xs text-gray-500">Học viên cần đạt số điểm này trở lên (Tính theo %)</p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max="100"
+                                                        value={passPercent}
+                                                        onChange={e => setPassPercent(Number(e.target.value))}
+                                                        className="w-20 p-2 border border-purple-300 rounded text-center font-bold text-purple-700 focus:ring-2 focus:ring-purple-500 outline-none"
+                                                    />
+                                                    <span className="font-bold text-gray-600">%</span>
+                                                </div>
+                                            </div>
 
                                             {quizQuestions.map((q, qIndex) => (
                                                 <div key={qIndex} className="p-4 bg-white rounded border border-gray-200 relative shadow-sm">

@@ -38,7 +38,7 @@ export interface ILesson {
         url: string;
         public_id: string;
     };
-
+    passPercent?: number;
     isPreview: boolean;
     order?: number;
 }

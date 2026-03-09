@@ -65,6 +65,8 @@ export default function ManageCoursePage() {
         correctAnswer: 0
     }]);
 
+    const [passPercent, setPassPercent] = useState<number>(80);
+
     const fetchCourseData = async () => {
         try {
             setLoading(true);
@@ -269,6 +271,7 @@ export default function ManageCoursePage() {
             formData.append('content', textContent);
         } else if (lessonType === 'quiz') {
             formData.append('quizQuestions', JSON.stringify(quizQuestions));
+            formData.append('passPercent', passPercent.toString());
         }
 
         try {
@@ -283,6 +286,7 @@ export default function ManageCoursePage() {
             setTextContent('');
             setQuizQuestions([{ question: '', options: ['', '', '', ''], correctAnswer: 0 }]);
             setLessonType('video');
+            setPassPercent(80);
 
             fetchCourseData();
         } catch (error) {
@@ -298,6 +302,7 @@ export default function ManageCoursePage() {
         setLessonFile(null);
         setTextContent('');
         setLessonType('video');
+        setPassPercent(80);
     };
 
     const getLessonVideoUrl = (videoData: any) => {
@@ -401,6 +406,8 @@ export default function ManageCoursePage() {
                     newSectionTitle={newSectionTitle}
                     setNewSectionTitle={setNewSectionTitle}
                     handleAddSection={handleAddSection}
+                    passPercent={passPercent}
+                    setPassPercent={setPassPercent}
                 />
             </div>
         </div>
