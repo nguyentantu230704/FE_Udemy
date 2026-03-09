@@ -159,7 +159,7 @@ export default function CourseCurriculum({
                                 <div className="space-y-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề bài học</label>
-                                        <input type="text" placeholder="VD: Giới thiệu..." required className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" value={lessonTitle} onChange={e => setLessonTitle(e.target.value)} />
+                                        <input type="text" placeholder="Bài 1: Giới thiệu..." required className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" value={lessonTitle} onChange={e => setLessonTitle(e.target.value)} />
                                     </div>
 
                                     <div>
