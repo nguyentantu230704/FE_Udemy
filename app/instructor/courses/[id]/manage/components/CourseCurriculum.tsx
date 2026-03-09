@@ -1,5 +1,9 @@
-import { Plus, Trash2, Video, HelpCircle, FileText, X, PlayCircle, Eye, UploadCloud, FileVideo, Trash, PlusCircle, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Trash2, Video, HelpCircle, FileText, X, PlayCircle, Eye, UploadCloud, FileVideo, Trash, PlusCircle, Loader2, Sparkles } from 'lucide-react';
+import toast from 'react-hot-toast';
+import axiosClient from '@/utils/axiosClient';
 import { ICourse } from '@/types';
+
 
 interface Props {
     course: ICourse;
@@ -23,6 +27,7 @@ interface Props {
     textContent: string;
     setTextContent: (val: string) => void;
     quizQuestions: any[];
+    setQuizQuestions: (val: any[]) => void;
     handleQuizChange: (index: number, field: string, value: any, optIndex?: number) => void;
     handleDeleteQuestion: (index: number) => void;
     handleAddQuestion: () => void;
@@ -40,9 +45,37 @@ export default function CourseCurriculum({
     activeSectionId, setActiveSectionId, handleAddLesson, handleCancelAddLesson,
     lessonTitle, setLessonTitle, lessonType, setLessonType,
     lessonFile, setLessonFile, lessonInputRef,
-    textContent, setTextContent, quizQuestions, handleQuizChange, handleDeleteQuestion, handleAddQuestion,
+    textContent, setTextContent, quizQuestions, setQuizQuestions, handleQuizChange, handleDeleteQuestion, handleAddQuestion,
     uploadingLesson, isAddingSection, setIsAddingSection, newSectionTitle, setNewSectionTitle, handleAddSection
 }: Props) {
+    // --- STATE CHO AI QUIZ ---
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [aiNumQuestions, setAiNumQuestions] = useState(3);
+    const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+
+    const handleAIGenerate = async () => {
+        if (!aiPrompt.trim()) {
+            toast.error("Vui lòng nhập nội dung bài giảng để AI phân tích!");
+            return;
+        }
+        setIsGeneratingAI(true);
+        try {
+            const { data } = await axiosClient.post('/lessons/generate-quiz', {
+                prompt: aiPrompt,
+                numQuestions: aiNumQuestions
+            });
+
+            if (data.success && data.data) {
+                setQuizQuestions(data.data);
+                toast.success("✨ Đã tạo bộ câu hỏi thành công!");
+                setAiPrompt(''); // Xóa text sau khi tạo xong
+            }
+        } catch (error) {
+            toast.error("Lỗi tạo Quiz. Nội dung quá dài hoặc AI đang bận.");
+        } finally {
+            setIsGeneratingAI(false);
+        }
+    };
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -135,6 +168,7 @@ export default function CourseCurriculum({
                                                             </div>
                                                         </div>
                                                     )}
+
                                                     <div className="bg-gray-900 text-white text-xs p-2 flex justify-between items-center">
                                                         <span>Đang xem thử: {lesson.title}</span>
                                                         <button onClick={() => setPreviewLessonId(null)} className="text-gray-300 hover:text-white font-bold">Đóng</button>
@@ -221,7 +255,51 @@ export default function CourseCurriculum({
 
                                     {lessonType === 'quiz' && (
                                         <div className="space-y-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                            {/* GHI CHÚ: NẾU BẠN CÓ CODE AI QUIZ, HÃY CHÈN COMPONENT ĐÓ VÀO ĐÂY */}
+
+                                            {/* --- KHỐI TẠO QUIZ TỰ ĐỘNG BẰNG AI --- */}
+                                            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-purple-200 shadow-sm relative overflow-hidden">
+                                                <div className="absolute -right-4 -top-4 text-purple-200 opacity-50">
+                                                    <Sparkles className="w-24 h-24" />
+                                                </div>
+                                                <h4 className="font-bold text-purple-800 flex items-center gap-2 mb-2 relative z-10">
+                                                    <Sparkles className="w-5 h-5 text-purple-600" /> Tạo trắc nghiệm tự động với AI
+                                                </h4>
+                                                <p className="text-xs text-purple-600 mb-3 relative z-10">Dán nội dung bài giảng vào đây, Gemini AI sẽ tự động đọc hiểu và soạn bộ câu hỏi cho bạn.</p>
+
+                                                <textarea
+                                                    rows={3}
+                                                    placeholder="Ví dụ: Trái Đất là hành tinh thứ 3 tính từ Mặt Trời..."
+                                                    className="w-full p-3 rounded-lg border border-purple-200 focus:ring-2 focus:ring-purple-400 text-sm mb-3 relative z-10"
+                                                    value={aiPrompt}
+                                                    onChange={(e) => setAiPrompt(e.target.value)}
+                                                />
+
+                                                {/* THÊM KHỐI CHỌN SỐ LƯỢNG CÂU HỎI VÀO ĐÂY */}
+                                                <div className="flex items-center gap-3 mb-4 relative z-10">
+                                                    <label className="text-sm font-bold text-purple-800">Số lượng câu hỏi muốn tạo:</label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max="20"
+                                                        value={aiNumQuestions}
+                                                        onChange={(e) => setAiNumQuestions(parseInt(e.target.value) || 1)}
+                                                        className="w-20 p-2 border border-purple-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none text-center font-bold text-purple-900"
+                                                    />
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAIGenerate}
+                                                    disabled={isGeneratingAI}
+                                                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-lg text-sm flex items-center gap-2 transition disabled:opacity-50 relative z-10 shadow-md"
+                                                >
+                                                    {isGeneratingAI ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                                                    {/* SỬA LẠI CHỮ TRÊN NÚT BẤM CHO LINH HOẠT */}
+                                                    {isGeneratingAI ? 'AI đang soạn câu hỏi...' : `Tạo ${aiNumQuestions} câu hỏi ngay`}
+                                                </button>
+                                            </div>
+                                            {/* -------------------------------------- */}
+
                                             {quizQuestions.map((q, qIndex) => (
                                                 <div key={qIndex} className="p-4 bg-white rounded border border-gray-200 relative shadow-sm">
                                                     <div className="flex justify-between mb-2">

@@ -391,6 +391,7 @@ export default function ManageCoursePage() {
                     textContent={textContent}
                     setTextContent={setTextContent}
                     quizQuestions={quizQuestions}
+                    setQuizQuestions={setQuizQuestions}
                     handleQuizChange={handleQuizChange}
                     handleDeleteQuestion={handleDeleteQuestion}
                     handleAddQuestion={handleAddQuestion}
