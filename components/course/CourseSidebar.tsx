@@ -13,7 +13,12 @@ interface Props {
     course: ICourse;
 }
 
+// 1. Khai báo URL gốc của trang web (Để ở ngoài cùng hoặc ngay dưới các hàm hooks)
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fe-udemyclone.vercel.app';
+
 export default function CourseSidebar({ course }: Props) {
+    const currentCourseUrl = `${siteUrl}/course/${course.slug}`;
+
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [user, setUser] = useState<IUser | null>(null);
@@ -156,22 +161,19 @@ export default function CourseSidebar({ course }: Props) {
                     <p className="text-sm font-semibold text-gray-700 mb-3 text-center">Chia sẻ khóa học:</p>
 
                     <InlineShareButtons
+                        // THÊM KEY NÀY: Ép bộ nút phải được tạo mới hoàn toàn mỗi khi đổi khóa học
+                        key={course.slug}
                         config={{
                             alignment: 'center',
                             color: 'social',
                             enabled: true,
-
-                            // --- 3 THUỘC TÍNH BẮT BUỘC THÊM VÀO ĐỂ SỬA LỖI TS ---
-                            font_size: 14,        // Kích thước chữ (dù đã ẩn chữ nhưng TS vẫn đòi)
-                            language: 'vi',       // Ngôn ngữ
-                            show_total: false,    // Ẩn tổng số lượt share (để true nếu bạn muốn khoe số lượt share)
-                            // ----------------------------------------------------
-
-                            labels: null,         // Ẩn chữ bên cạnh icon
-                            radius: 16,           // Bo góc
-                            size: 42,             // Kích thước icon
+                            font_size: 14,
+                            language: 'vi',
+                            show_total: false,
+                            labels: null,
+                            radius: 16,
+                            size: 42,
                             padding: 10,
-
                             networks: [
                                 'facebook',
                                 'twitter',
@@ -180,7 +182,13 @@ export default function CourseSidebar({ course }: Props) {
                                 'sharethis'
                             ],
 
-                            url: typeof window !== 'undefined' ? window.location.href : '',
+                            // SỬA LẠI DÒNG NÀY: Dùng link tuyệt đối thay vì window.location
+                            url: currentCourseUrl,
+
+                            // Mẹo bổ sung: Truyền thêm tiêu đề và ảnh để ShareThis hiểu rõ hơn
+                            title: `${course.title} | Udemy Clone`,
+                            image: course.thumbnail?.url || '',
+                            description: course.description,
                         }}
                     />
                 </div>
