@@ -148,9 +148,14 @@ export default function CourseSidebar({ course }: Props) {
                         </>
                     )}
                 </div>
-                {/* ------------------------------------------- */}
 
-                <p className="text-center text-xs text-gray-500 mt-4">Đảm bảo hoàn tiền trong 30 ngày</p>
+                {/* === CHÈN ĐOẠN SHARETHIS VÀO NGAY CHỖ NÀY === */}
+                <div className="mt-5 pt-5 border-t border-gray-100">
+                    <p className="text-sm font-semibold text-gray-700 mb-3 text-center">Chia sẻ khóa học:</p>
+                    {/* đổi class thành className */}
+                    <div className="sharethis-inline-share-buttons"></div>
+                </div>
+                {/* ------------------------------------------- */}
 
                 <div className="mt-6 space-y-3">
                     <h4 className="font-bold text-sm text-gray-900">Khóa học này bao gồm:</h4>

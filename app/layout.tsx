@@ -4,7 +4,7 @@ import './globals.css';
 import Header from '../components/Header'; // Import Header
 import Footer from '../components/Footer'; // Import Footer
 import { CartProvider } from '@/context/CartContext'; // Import mới
-
+import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -30,6 +30,10 @@ export default function RootLayout({
           <main className="min-h-screen bg-white text-gray-900">
 
             {children}
+            <Script
+              src="https://platform-api.sharethis.com/js/sharethis.js#property=69af9fd4a66a5988ab6aaff9&product=sop"
+              strategy="lazyOnload"
+            />
 
           </main>
 
