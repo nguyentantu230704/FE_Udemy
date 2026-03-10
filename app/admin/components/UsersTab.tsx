@@ -1,31 +1,36 @@
+// Tệp: app/admin/components/UsersTab.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Search, X, Loader2, BookOpen, AlertTriangle, MinusCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, X, Loader2, BookOpen, AlertTriangle, Percent } from 'lucide-react';
 import axiosClient from '@/utils/axiosClient';
 import toast from 'react-hot-toast';
 import { IUser } from '@/types';
 
+// Import Component mới tách
+import UserCoursesModal from './UserCoursesModal';
+
+
 export default function UsersTab() {
-    const [users, setUsers] = useState<IUser[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Modal Form State
+    // Modal Form State (Thêm/Sửa User)
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<IUser | null>(null);
     const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'student' });
     const [submitting, setSubmitting] = useState(false);
 
-    // Modal Course State
-    const [viewCoursesUser, setViewCoursesUser] = useState<IUser | null>(null);
-    const [removingCourseId, setRemovingCourseId] = useState<string | null>(null);
-
-    // State xác nhận gỡ khóa học
-    const [verifyCourseId, setVerifyCourseId] = useState<string | null>(null);
+    // Modal View Courses State (Rất gọn)
+    const [viewCoursesUser, setViewCoursesUser] = useState<any | null>(null);
 
     // Modal Delete User State
     const [deleteId, setDeleteId] = useState<string | null>(null);
+
+    // Modal Deal Doanh Thu State
+    const [dealModal, setDealModal] = useState<{ isOpen: boolean, user: any | null }>({ isOpen: false, user: null });
+    const [commissionRate, setCommissionRate] = useState(30);
 
     useEffect(() => {
         fetchUsers();
@@ -82,30 +87,32 @@ export default function UsersTab() {
         } catch (error) { toast.error("Lỗi xóa người dùng"); }
     };
 
-    // --- REMOVE COURSE HANDLING ---
-    const confirmRemoveCourse = (courseId: string) => {
-        setVerifyCourseId(courseId);
+    // --- CẬP NHẬT DEAL DOANH THU ---
+    const handleUpdateCommission = async () => {
+        if (!dealModal.user) return;
+        setSubmitting(true);
+        try {
+            const { data } = await axiosClient.put(`/admin/users/${dealModal.user._id}/commission`, {
+                adminCommissionRate: commissionRate
+            });
+            if (data.success) {
+                toast.success("Đã lưu tỉ lệ chia sẻ doanh thu!");
+                setUsers(users.map(u => u._id === dealModal.user._id ? { ...u, adminCommissionRate: commissionRate } : u));
+                setDealModal({ isOpen: false, user: null });
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Lỗi cập nhật Deal");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
-    const executeRemoveCourse = async () => {
-        if (!viewCoursesUser || !verifyCourseId) return;
-
-        setRemovingCourseId(verifyCourseId);
-        try {
-            await axiosClient.delete(`/admin/users/${viewCoursesUser._id}/courses/${verifyCourseId}`);
-            toast.success("Đã gỡ khóa học thành công");
-
-            const updatedCourses = viewCoursesUser.enrolledCourses?.filter((c: any) => c._id !== verifyCourseId) || [];
-            const updatedUser = { ...viewCoursesUser, enrolledCourses: updatedCourses };
-            setViewCoursesUser(updatedUser);
-            setUsers(users.map(u => u._id === viewCoursesUser._id ? updatedUser : u));
-
-        } catch (error) {
-            toast.error("Lỗi gỡ khóa học");
-        } finally {
-            setRemovingCourseId(null);
-            setVerifyCourseId(null);
-        }
+    // --- CẬP NHẬT LẠI DANH SÁCH SAU KHI COMPONENT CON XÓA KHÓA HỌC ---
+    const handleUserCoursesUpdated = (userId: string, updatedCourses: any[]) => {
+        // Cập nhật lại state của viewCoursesUser để popup hiển thị liền
+        setViewCoursesUser((prev: any) => prev ? { ...prev, enrolledCourses: updatedCourses } : null);
+        // Cập nhật lại state của users table để đổi số lượng khóa
+        setUsers(users.map(u => u._id === userId ? { ...u, enrolledCourses: updatedCourses } : u));
     };
 
     const filteredUsers = users.filter(u =>
@@ -140,7 +147,7 @@ export default function UsersTab() {
                     <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase text-xs font-bold tracking-wider">
                         <tr>
                             <th className="p-4">Thành viên</th>
-                            <th className="p-4">Vai trò</th>
+                            <th className="p-4">Vai trò / Deal</th>
                             <th className="p-4">Khóa học</th>
                             <th className="p-4 text-right">Thao tác</th>
                         </tr>
@@ -159,13 +166,19 @@ export default function UsersTab() {
                                         </div>
                                     </div>
                                 </td>
-                                <td className="p-4">
+                                <td className="p-4 flex flex-col items-start gap-1">
                                     <span className={`px-3 py-1 rounded-full text-xs font-bold border ${user.role === 'admin' ? 'bg-red-100 text-red-700 border-red-200' :
-                                            user.role === 'instructor' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                                                'bg-green-100 text-green-700 border-green-200'
+                                        user.role === 'instructor' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                                            'bg-green-100 text-green-700 border-green-200'
                                         }`}>
                                         {user.role === 'admin' ? 'Quản trị viên' : user.role === 'instructor' ? 'Giảng viên' : 'Học viên'}
                                     </span>
+
+                                    {user.role === 'instructor' && (
+                                        <span className="text-xs font-bold text-orange-600 bg-orange-100 border border-orange-200 px-2 py-0.5 mt-1 rounded-md">
+                                            Admin thu: {user.adminCommissionRate !== undefined ? user.adminCommissionRate : 30}%
+                                        </span>
+                                    )}
                                 </td>
                                 <td className="p-4">
                                     <button onClick={() => setViewCoursesUser(user)} className="text-sm text-gray-600 hover:text-blue-600 font-medium flex items-center gap-1 bg-gray-100 hover:bg-blue-50 px-3 py-1 rounded transition">
@@ -174,6 +187,18 @@ export default function UsersTab() {
                                 </td>
                                 <td className="p-4 text-right">
                                     <div className="flex justify-end gap-2">
+                                        {user.role === 'instructor' && (
+                                            <button
+                                                onClick={() => {
+                                                    setDealModal({ isOpen: true, user });
+                                                    setCommissionRate(user.adminCommissionRate !== undefined ? user.adminCommissionRate : 30);
+                                                }}
+                                                className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded-full transition"
+                                                title="Cài đặt % doanh thu"
+                                            >
+                                                <Percent className="w-4 h-4" />
+                                            </button>
+                                        )}
                                         <button onClick={() => openForm(user)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition" title="Sửa">
                                             <Edit className="w-4 h-4" />
                                         </button>
@@ -190,6 +215,14 @@ export default function UsersTab() {
                 </table>
             </div>
 
+            {/* --- COMPONENT TÁCH RỜI QUẢN LÝ KHÓA HỌC (RẤT GỌN) --- */}
+            <UserCoursesModal
+                user={viewCoursesUser}
+                isOpen={viewCoursesUser !== null}
+                onClose={() => setViewCoursesUser(null)}
+                onUpdateUserCourses={handleUserCoursesUpdated}
+            />
+
             {/* --- MODAL FORM USER --- */}
             {isFormOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
@@ -199,26 +232,15 @@ export default function UsersTab() {
                             <button onClick={() => setIsFormOpen(false)}><X className="w-6 h-6 text-gray-400 hover:text-black" /></button>
                         </div>
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Họ tên</label>
-                                <input type="text" required className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
-                                <input type="email" required className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
-                            </div>
-                            {!editingUser && (
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Mật khẩu</label>
-                                    <input type="password" required className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
-                                </div>
-                            )}
+                            <div><label className="block text-sm font-bold text-gray-700 mb-1">Họ tên</label><input type="text" required className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} /></div>
+                            <div><label className="block text-sm font-bold text-gray-700 mb-1">Email</label><input type="email" required className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} /></div>
+                            {!editingUser && (<div><label className="block text-sm font-bold text-gray-700 mb-1">Mật khẩu</label><input type="password" required className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} /></div>)}
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Vai trò</label>
                                 <select className="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })}>
-                                    <option value="student">Học viên (Student)</option>
-                                    <option value="instructor">Giảng viên (Instructor)</option>
-                                    <option value="admin">Quản trị viên (Admin)</option>
+                                    <option value="student">Học viên</option>
+                                    <option value="instructor">Giảng viên</option>
+                                    <option value="admin">Quản trị viên</option>
                                 </select>
                             </div>
                             <button type="submit" disabled={submitting} className="w-full py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 flex justify-center items-center gap-2">
@@ -244,73 +266,37 @@ export default function UsersTab() {
                 </div>
             )}
 
-            {/* --- MODAL VIEW COURSES --- */}
-            {viewCoursesUser && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 max-h-[80vh] overflow-hidden flex flex-col relative">
-                        <div className="flex justify-between items-center mb-4 pb-2 border-b">
-                            <h3 className="font-bold text-lg">Khóa học của {viewCoursesUser.name}</h3>
-                            <button onClick={() => setViewCoursesUser(null)}><X className="w-5 h-5" /></button>
+            {/* --- MODAL DEAL DOANH THU --- */}
+            {dealModal.isOpen && dealModal.user && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-gray-800">Thỏa thuận doanh thu</h3>
+                            <button onClick={() => setDealModal({ isOpen: false, user: null })}><X className="w-5 h-5 text-gray-400 hover:text-black" /></button>
                         </div>
-                        <div className="flex-1 overflow-y-auto">
-                            {viewCoursesUser.enrolledCourses && viewCoursesUser.enrolledCourses.length > 0 ? (
-                                <ul className="space-y-2">
-                                    {viewCoursesUser.enrolledCourses.map((c: any) => (
-                                        <li key={c._id} className="p-3 bg-gray-50 rounded border flex justify-between items-center gap-3 group hover:bg-blue-50 transition">
-                                            <div className="flex items-center gap-3 overflow-hidden">
-                                                <div className="w-10 h-10 bg-gray-200 rounded shrink-0 overflow-hidden">
-                                                    <img src={c.thumbnail?.url || '/placeholder.jpg'} className="w-full h-full object-cover" />
-                                                </div>
-                                                <span className="text-sm font-medium line-clamp-1">{c.title}</span>
-                                            </div>
-
-                                            <button
-                                                onClick={() => confirmRemoveCourse(c._id)}
-                                                className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-full transition opacity-0 group-hover:opacity-100"
-                                                title="Gỡ học viên khỏi khóa này"
-                                            >
-                                                <MinusCircle className="w-4 h-4" />
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : <p className="text-center text-gray-500 py-4">Chưa đăng ký khóa học nào.</p>}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* --- SỬA Ở ĐÂY: MODAL XÁC NHẬN GỠ KHÓA HỌC (ĐƯA RA NGOÀI CÙNG) --- */}
-            {/* Sử dụng fixed inset-0 để phủ toàn màn hình và z-index cao hơn modal cha */}
-            {verifyCourseId && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center transform scale-100 transition-all">
-                        <div className="bg-orange-100 p-4 rounded-full inline-block mb-4">
-                            <AlertTriangle className="w-8 h-8 text-orange-600" />
-                        </div>
-                        <h3 className="text-xl font-bold mb-2 text-gray-900">Xác nhận gỡ khóa học?</h3>
-                        <p className="text-gray-500 mb-6 text-sm px-2">
-                            Học viên sẽ mất quyền truy cập và toàn bộ tiến độ học tập trong khóa học này.
+                        <p className="text-sm text-gray-500 mb-4">
+                            Cài đặt tỉ lệ % nền tảng thu của giảng viên <strong className="text-gray-800">{dealModal.user.name}</strong>.
                         </p>
+                        <div className="mb-6">
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Admin thu (%)</label>
+                            <div className="relative">
+                                <input type="number" min="0" max="100" className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-lg font-bold pr-10" value={commissionRate} onChange={e => setCommissionRate(Number(e.target.value))} />
+                                <span className="absolute right-4 top-3.5 text-gray-400 font-bold">%</span>
+                            </div>
+                            <div className="mt-3 flex justify-between text-sm">
+                                <span className="text-orange-600 font-bold">Nền tảng: {commissionRate}%</span>
+                                <span className="text-green-600 font-bold">Giảng viên: {100 - commissionRate}%</span>
+                            </div>
+                        </div>
                         <div className="flex gap-3">
-                            <button
-                                onClick={() => setVerifyCourseId(null)}
-                                className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition"
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                onClick={executeRemoveCourse}
-                                disabled={removingCourseId !== null}
-                                className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition flex items-center justify-center gap-2"
-                            >
-                                {removingCourseId ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Gỡ ngay'}
+                            <button onClick={() => setDealModal({ isOpen: false, user: null })} className="flex-1 py-2.5 bg-gray-100 font-bold rounded-lg hover:bg-gray-200 text-gray-700">Hủy</button>
+                            <button onClick={handleUpdateCommission} disabled={submitting} className="flex-1 py-2.5 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 flex justify-center items-center gap-2">
+                                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Lưu tỉ lệ'}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
-            {/* ------------------------------------------------------------------ */}
         </div>
     );
 }

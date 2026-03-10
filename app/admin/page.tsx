@@ -18,7 +18,7 @@ import CoursesTab from './components/CoursesTab';
 function AdminContent() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('dashboard');
-    const [stats, setStats] = useState({ totalUsers: 0, totalCourses: 0, totalRevenue: 0, totalProfit: 0, pendingPayouts: 0 });
+    const [stats, setStats] = useState<any>({ totalUsers: 0, totalCourses: 0, totalRevenue: 0, totalProfit: 0, pendingPayouts: 0, recentTransactions: [] });
 
     // --- LOGIC USER/CATEGORY CŨ (Giữ nguyên các state & hàm fetchUsers/Category cũ ở đây) ---
     // ... [Dán lại code quản lý User/Category cũ của bạn vào đây] ...
