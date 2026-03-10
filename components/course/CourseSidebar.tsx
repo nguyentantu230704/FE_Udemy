@@ -6,6 +6,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosClient from '@/utils/axiosClient';
 import { useCart } from '@/context/CartContext';
+import { InlineShareButtons } from 'sharethis-reactjs';
+
 
 interface Props {
     course: ICourse;
@@ -149,13 +151,40 @@ export default function CourseSidebar({ course }: Props) {
                     )}
                 </div>
 
-                {/* === CHÈN ĐOẠN SHARETHIS VÀO NGAY CHỖ NÀY === */}
+                {/* === BỘ NÚT SHARETHIS === */}
                 <div className="mt-5 pt-5 border-t border-gray-100">
                     <p className="text-sm font-semibold text-gray-700 mb-3 text-center">Chia sẻ khóa học:</p>
-                    {/* đổi class thành className */}
-                    <div className="sharethis-inline-share-buttons"></div>
+
+                    <InlineShareButtons
+                        config={{
+                            alignment: 'center',
+                            color: 'social',
+                            enabled: true,
+
+                            // --- 3 THUỘC TÍNH BẮT BUỘC THÊM VÀO ĐỂ SỬA LỖI TS ---
+                            font_size: 14,        // Kích thước chữ (dù đã ẩn chữ nhưng TS vẫn đòi)
+                            language: 'vi',       // Ngôn ngữ
+                            show_total: false,    // Ẩn tổng số lượt share (để true nếu bạn muốn khoe số lượt share)
+                            // ----------------------------------------------------
+
+                            labels: null,         // Ẩn chữ bên cạnh icon
+                            radius: 16,           // Bo góc
+                            size: 42,             // Kích thước icon
+                            padding: 10,
+
+                            networks: [
+                                'facebook',
+                                'twitter',
+                                'reddit',
+                                'messenger',
+                                'sharethis'
+                            ],
+
+                            url: typeof window !== 'undefined' ? window.location.href : '',
+                        }}
+                    />
                 </div>
-                {/* ------------------------------------------- */}
+                {/* =============================================== */}
 
                 <div className="mt-6 space-y-3">
                     <h4 className="font-bold text-sm text-gray-900">Khóa học này bao gồm:</h4>
