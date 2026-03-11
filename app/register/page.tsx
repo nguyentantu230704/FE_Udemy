@@ -8,7 +8,10 @@ import toast, { Toaster } from 'react-hot-toast';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 import axiosClient from '../../utils/axiosClient';
-import { IUser, ApiError } from '../../types';
+import { ApiError } from '../../types';
+
+// --- IMPORT GOOGLE LOGIN COMPONENT ---
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -19,14 +22,12 @@ export default function RegisterPage() {
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
 
+    // --- LOGIC ĐĂNG KÝ TÀI KHOẢN THƯỜNG ---
     const handleRegister = async (e: FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            // Gọi API Đăng ký
-            // Lúc này Backend chỉ trả về { success: true, message: "..." }
-            // CHƯA CÓ TOKEN
             await axiosClient.post('/auth/register', {
                 name,
                 email,
@@ -34,23 +35,38 @@ export default function RegisterPage() {
                 role: 'student'
             });
 
-            // 1. Thông báo rõ ràng cho người dùng
             toast.success('Đăng ký thành công! Vui lòng kiểm tra email để kích hoạt tài khoản.');
 
-            // 2. QUAN TRỌNG: Xóa bỏ đoạn lưu token (Vì chưa có token để lưu)
-            // localStorage.setItem('token', ...); <--- XÓA DÒNG NÀY
-            // localStorage.setItem('user', ...);  <--- XÓA DÒNG NÀY
-
-            // 3. Chuyển hướng về trang Đăng nhập (thay vì trang chủ)
-            // Để người dùng chờ kích hoạt xong thì đăng nhập
             setTimeout(() => {
                 router.push('/login');
             }, 2000);
 
         } catch (error) {
-            const err = error as any; // Hoặc kiểu AxiosError tùy setup của bạn
+            const err = error as AxiosError<ApiError>;
             const mess = err.response?.data?.message || 'Có lỗi xảy ra!';
             toast.error(mess);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // --- LOGIC ĐĂNG KÝ/ĐĂNG NHẬP BẰNG GOOGLE ---
+    const handleGoogleSuccess = async (credentialResponse: any) => {
+        setLoading(true);
+        try {
+            const { data } = await axiosClient.post<any>('/auth/google', {
+                credential: credentialResponse.credential
+            });
+
+            // Với Google, người dùng không cần kích hoạt email nên cho đăng nhập luôn
+            toast.success('Tạo tài khoản Google thành công!');
+            localStorage.setItem('token', data.token || '');
+            localStorage.setItem('user', JSON.stringify(data));
+
+            setTimeout(() => { window.location.href = '/'; }, 800);
+        } catch (error) {
+            const err = error as AxiosError<ApiError>;
+            toast.error(err.response?.data?.message || 'Lỗi đăng ký bằng Google!');
         } finally {
             setLoading(false);
         }
@@ -81,6 +97,7 @@ export default function RegisterPage() {
                                 id="name"
                                 type="text"
                                 required
+                                autoFocus // 💡 MỚI: Tự động focus con trỏ
                                 className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm transition"
                                 placeholder="Ví dụ: Nguyễn Văn A"
                                 value={name}
@@ -132,10 +149,11 @@ export default function RegisterPage() {
                     </div>
 
                     <div>
+                        {/* 💡 MỚI: Khóa nút khi thiếu dữ liệu */}
                         <button
                             type="submit"
-                            disabled={loading}
-                            className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            disabled={loading || !name || !email || !password}
+                            className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out ${(loading || !name || !email || !password) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             {loading ? (
                                 <>
@@ -148,6 +166,31 @@ export default function RegisterPage() {
                         </button>
                     </div>
                 </form>
+
+                {/* --- KHU VỰC NÚT ĐĂNG KÝ GOOGLE --- */}
+                <div className="mt-6">
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-300" />
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-white text-gray-500">
+                                Hoặc tiếp tục với
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 flex justify-center">
+                        <GoogleLogin
+                            onSuccess={handleGoogleSuccess}
+                            onError={() => toast.error('Đăng ký Google thất bại!')}
+                            theme="outline"
+                            size="large"
+                            text="signup_with"
+                            width="100%"
+                        />
+                    </div>
+                </div>
 
                 <div className="text-center mt-4">
                     <p className="text-sm text-gray-600">
