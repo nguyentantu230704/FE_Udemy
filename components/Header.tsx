@@ -29,17 +29,22 @@ export default function Header() {
     const [loadingCats, setLoadingCats] = useState(true);
 
     const loadUserFromStorage = () => {
-        const userData = localStorage.getItem('user');
-        if (userData) {
-            setUser(JSON.parse(userData));
-        } else {
-            setUser(null);
+        if (typeof window !== 'undefined') {
+            const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
+            if (userData) {
+                setUser(JSON.parse(userData));
+            } else {
+                setUser(null);
+            }
         }
     };
 
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+
         setUser(null);
         window.dispatchEvent(new Event('userUpdated'));
         window.location.href = '/login';

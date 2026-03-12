@@ -18,7 +18,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
     const fetchCart = async () => {
         // Chỉ fetch nếu có token (đã đăng nhập)
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const token = typeof window !== 'undefined'
+            ? (localStorage.getItem('token') || sessionStorage.getItem('token'))
+            : null;
+
         if (!token) return;
 
         try {
