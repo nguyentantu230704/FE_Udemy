@@ -38,7 +38,7 @@ export default function ReviewsSection({ courseId, instructorId }: Props) {
     // -------------------------------
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
+        const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
         if (storedUser) setUser(JSON.parse(storedUser));
         fetchReviews();
     }, [courseId]);

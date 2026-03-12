@@ -42,21 +42,24 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
     ];
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
+        if (typeof window !== 'undefined') {
+            // 💡 SỬA TẠI ĐÂY: Dạy cho "bảo vệ" cách tìm user ở cả 2 túi
+            const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
 
-        if (!storedUser) {
-            router.push('/login');
-            return;
+            if (!storedUser) {
+                router.push('/login');
+                return;
+            }
+
+            const user: IUser = JSON.parse(storedUser);
+
+            if (user.role !== 'instructor' && user.role !== 'admin') {
+                router.push('/');
+            } else {
+                setAuthorized(true);
+            }
         }
-
-        const user: IUser = JSON.parse(storedUser);
-
-        if (user.role !== 'instructor' && user.role !== 'admin') {
-            router.push('/');
-        } else {
-            setAuthorized(true);
-        }
-    }, []);
+    }, [router, pathname]);
 
     if (!authorized) return null;
 

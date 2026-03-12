@@ -29,7 +29,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<string>('all');
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }

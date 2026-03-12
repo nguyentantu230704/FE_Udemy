@@ -60,8 +60,8 @@ export default function RegisterPage() {
 
             // Với Google, người dùng không cần kích hoạt email nên cho đăng nhập luôn
             toast.success('Tạo tài khoản Google thành công!');
-            localStorage.setItem('token', data.token || '');
-            localStorage.setItem('user', JSON.stringify(data));
+            sessionStorage.setItem('token', data.token || '');
+            sessionStorage.setItem('user', JSON.stringify(data));
 
             setTimeout(() => { window.location.href = '/'; }, 800);
         } catch (error) {

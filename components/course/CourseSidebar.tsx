@@ -28,11 +28,14 @@ export default function CourseSidebar({ course }: Props) {
     const [isInCart, setIsInCart] = useState(false);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            setUser(parsedUser);
-            checkStatus(parsedUser._id);
+        if (typeof window !== 'undefined') {
+            // 💡 SỬA: Tìm user ở cả localStorage và sessionStorage
+            const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+            if (storedUser) {
+                const parsedUser = JSON.parse(storedUser);
+                setUser(parsedUser);
+                checkStatus(parsedUser._id);
+            }
         }
     }, []);
 

@@ -78,6 +78,8 @@ export default function SettingsPage() {
                 // Đăng xuất người dùng để bảo mật
                 localStorage.removeItem('user');
                 localStorage.removeItem('token');
+                sessionStorage.removeItem('user');
+                sessionStorage.removeItem('token');
 
                 setTimeout(() => {
                     window.location.href = '/login';

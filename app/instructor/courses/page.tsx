@@ -12,8 +12,8 @@ export default function InstructorDashboard() {
     const [user, setUser] = useState<IUser | null>(null);
 
     useEffect(() => {
-        // Lấy user từ local storage để lọc khóa học của chính mình
-        const storedUser = localStorage.getItem('user');
+        // 💡 SỬA TẠI ĐÂY: Tìm user ở cả 2 kho chứa
+        const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
         if (storedUser) setUser(JSON.parse(storedUser));
 
         const fetchCourses = async () => {

@@ -95,15 +95,20 @@ export default function ProfilePage() {
                 toast.success("Cập nhật hồ sơ thành công!");
 
                 // Cập nhật LocalStorage
-                const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                const storedUserStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+                const currentUser = JSON.parse(storedUserStr || '{}');
                 const newUser = {
                     ...currentUser,
                     name: data.data.name,
                     avatar: data.data.avatar,
                     headline: data.data.headline
                 };
-                localStorage.setItem('user', JSON.stringify(newUser));
 
+                if (sessionStorage.getItem('token')) {
+                    sessionStorage.setItem('user', JSON.stringify(newUser));
+                } else {
+                    localStorage.setItem('user', JSON.stringify(newUser));
+                }
                 // --- LOGIC RESET SAU KHI LƯU ---
                 // 1. Cập nhật lại form với dữ liệu mới nhất từ server
                 setFormData(prev => ({

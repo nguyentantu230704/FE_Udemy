@@ -18,8 +18,8 @@ export default function VerifyEmailPage() {
 
                 // Nếu backend trả về token đăng nhập luôn, lưu vào localStorage
                 if (data.data && data.data.token) {
-                    localStorage.setItem('token', data.data.token);
-                    localStorage.setItem('user', JSON.stringify(data.data));
+                    sessionStorage.setItem('token', data.data.token);
+                    sessionStorage.setItem('user', JSON.stringify(data.data));
                     // dispatch user vào context nếu có dùng context
                 }
 
