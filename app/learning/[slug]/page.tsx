@@ -206,7 +206,7 @@ export default function LearningPage() {
                 return (
                     <div className="flex-1 bg-gray-50 overflow-y-auto">
                         {currentLesson.quizQuestions && currentLesson.quizQuestions.length > 0 ? (
-                            <QuizView questions={currentLesson.quizQuestions} passPercent={currentLesson.passPercent} onPass={handleLessonComplete} />
+                            <QuizView key={currentLesson._id} questions={currentLesson.quizQuestions} passPercent={currentLesson.passPercent} onPass={handleLessonComplete} />
                         ) : <div className="p-10 text-center text-gray-500">Bài tập đang được cập nhật...</div>}
                     </div>
                 );
