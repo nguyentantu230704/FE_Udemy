@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Loader2, FileText, CheckCircle, Check, ChevronLeft } from 'lucide-react';
 import axiosClient from '@/utils/axiosClient';
@@ -13,7 +13,8 @@ import CourseHeader from './components/CourseHeader';
 import CourseSidebar from './components/CourseSidebar';
 import QuizView from './components/QuizView';
 import DocumentViewer from './components/DocumentViewer';
-import VideoPlayer from './components/VideoPlayer';
+import VideoPlayer, { VideoPlayerRef } from './components/VideoPlayer';
+import NotesTab from './components/NotesTab';
 
 export default function LearningPage() {
     const params = useParams();
@@ -30,6 +31,8 @@ export default function LearningPage() {
     const [progressPercent, setProgressPercent] = useState(0);
 
     const [certificateId, setCertificateId] = useState<string | null>(null);
+
+    const videoPlayerRef = useRef<VideoPlayerRef>(null);
 
     // Lấy Data
     useEffect(() => {
@@ -168,11 +171,20 @@ export default function LearningPage() {
             case 'video':
                 const videoUrl = getVideoUrl(currentLesson.video);
                 return videoUrl ? (
-                    <VideoPlayer
-                        videoUrl={videoUrl}
-                        lessonId={currentLesson._id}
-                        onEnded={handleLessonComplete}
-                    />
+                    <div className="flex flex-col w-full">
+                        <VideoPlayer
+                            ref={videoPlayerRef} // 💡 Gắn Ref vào đây
+                            videoUrl={videoUrl}
+                            lessonId={currentLesson._id}
+                            onEnded={handleLessonComplete}
+                        />
+                        {/* 💡 Chèn Tab Ghi Chú ngay dưới Video */}
+                        <NotesTab
+                            lessonId={currentLesson._id}
+                            getCurrentTime={() => videoPlayerRef.current?.getCurrentTime() || 0}
+                            seekTo={(time) => videoPlayerRef.current?.seekTo(time)}
+                        />
+                    </div>
                 ) : (
                     <div className="w-full bg-black aspect-video flex items-center justify-center text-white">
                         Video đang cập nhật...
