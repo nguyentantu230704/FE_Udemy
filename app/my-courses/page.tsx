@@ -148,7 +148,7 @@ export default function MyCoursesPage() {
                                         Giảng viên: {
                                             course.instructor && typeof course.instructor === 'object'
                                                 ? (course.instructor as any).name
-                                                : 'Udemy Instructor'
+                                                : 'SmartLMS Instructor'
                                         }
                                     </p>
 
@@ -171,8 +171,8 @@ export default function MyCoursesPage() {
                                         <Link
                                             href={getLearnLink(course)}
                                             className={`block w-full text-center py-2.5 font-bold text-sm rounded transition shadow-sm hover:shadow ${(course as any).progress === 100
-                                                    ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
-                                                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                                                ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                                                : 'bg-purple-600 text-white hover:bg-purple-700'
                                                 }`}
                                         >
                                             {(course as any).progress === 100 ? 'Học lại' : 'Vào học ngay'}

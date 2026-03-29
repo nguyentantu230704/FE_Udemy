@@ -9,8 +9,8 @@ export default function Footer() {
                 {/* Grid Links */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
                     <div className="flex flex-col gap-2">
-                        <Link href="#" className="text-sm hover:underline">Udemy Business</Link>
-                        <Link href="#" className="text-sm hover:underline">Dạy học trên Udemy</Link>
+                        <Link href="#" className="text-sm hover:underline">SmartLMS Business</Link>
+                        <Link href="#" className="text-sm hover:underline">Dạy học trên SmartLMS</Link>
                         <Link href="#" className="text-sm hover:underline">Tải ứng dụng</Link>
                         <Link href="#" className="text-sm hover:underline">Giới thiệu</Link>
                         <Link href="#" className="text-sm hover:underline">Hãy liên hệ với chúng tôi</Link>
@@ -43,11 +43,11 @@ export default function Footer() {
                 <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-gray-700">
                     <div className="mb-4 md:mb-0">
                         <span className="text-2xl font-bold text-white">
-                            Udemy<span className="text-gray-400">Clone</span>
+                            SmartLMS<span className="text-gray-400">Clone</span>
                         </span>
                     </div>
                     <div className="text-xs text-gray-400">
-                        © 2025 Udemy Clone, Inc. Create by <span className="underline decoration-green-400 decoration-1 underline-offset-3">
+                        © 2025 SmartLMS, Inc. Create by <span className="underline decoration-green-400 decoration-1 underline-offset-3">
                             DevTeam
                         </span>
                     </div>

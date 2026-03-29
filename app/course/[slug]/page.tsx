@@ -23,13 +23,13 @@ export async function generateMetadata({ params }: ParamsProps): Promise<Metadat
         const courseUrl = `${siteUrl}/course/${slug}`;
 
         return {
-            title: `${course.title} | Udemy Clone`,
+            title: `${course.title} | Smart LMS`,
             description: course.description,
             openGraph: {
                 title: course.title,
                 description: course.description,
                 url: courseUrl,
-                siteName: 'Udemy Clone',
+                siteName: 'Smart LMS',
                 images: [
                     {
                         url: course.thumbnail?.url || '',

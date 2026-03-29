@@ -77,7 +77,7 @@ export default function LoginPage() {
             <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
                 <div className="text-center">
                     <h2 className="mt-2 text-3xl font-bold text-gray-900">
-                        Đăng nhập vào Udemy
+                        Đăng nhập vào SmartLMS
                     </h2>
                     <p className="mt-2 text-sm text-gray-600">
                         Tiếp tục hành trình học tập của bạn

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google'; // Font chữ đẹp giống Udemy
+import { Inter } from 'next/font/google'; // Font chữ đẹp 
 import './globals.css';
 import Header from '../components/Header'; // Import Header
 import Footer from '../components/Footer'; // Import Footer
@@ -11,7 +11,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Udemy Clone - Học trực tuyến',
+  title: 'Smart LMS - Học trực tuyến',
   description: 'Nền tảng học lập trình tốt nhất',
 };
 

@@ -89,7 +89,7 @@ export default function Header() {
                     </button>
                     <Link href="/" className="flex-shrink-0">
                         <span className="text-2xl font-bold text-gray-900">
-                            Udemy<span className="text-purple-600">Clone</span>
+                            Smart<span className="text-purple-600">LMS</span>
                         </span>
                     </Link>
                 </div>
@@ -136,7 +136,7 @@ export default function Header() {
                     {/* Link cho Giảng viên */}
                     {user && user.role === 'instructor' && (
                         <Link href="/instructor/courses" className="hidden lg:block text-sm font-medium text-gray-700 hover:text-purple-600">
-                            Dạy học trên Udemy
+                            Dạy học trên SmartLMS
                         </Link>
                     )}
 

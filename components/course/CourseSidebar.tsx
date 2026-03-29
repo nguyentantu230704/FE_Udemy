@@ -189,7 +189,7 @@ export default function CourseSidebar({ course }: Props) {
                             url: currentCourseUrl,
 
                             // Mẹo bổ sung: Truyền thêm tiêu đề và ảnh để ShareThis hiểu rõ hơn
-                            title: `${course.title} | Udemy Clone`,
+                            title: `${course.title} | SmartLMS`,
                             image: course.thumbnail?.url || '',
                             description: course.description,
                         }}
