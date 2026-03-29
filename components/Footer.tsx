@@ -43,7 +43,7 @@ export default function Footer() {
                 <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-gray-700">
                     <div className="mb-4 md:mb-0">
                         <span className="text-2xl font-bold text-white">
-                            SmartLMS<span className="text-gray-400">Clone</span>
+                            Smart<span className="text-gray-400">LMS</span>
                         </span>
                     </div>
                     <div className="text-xs text-gray-400">
