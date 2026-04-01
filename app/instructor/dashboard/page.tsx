@@ -21,6 +21,7 @@ interface ISalesHistory {
     courseTitle: string;
     grossAmount: number;
     netAmount: number;
+    appliedRate?: number;
 }
 
 interface IStats {
@@ -194,8 +195,23 @@ export default function InstructorDashboard() {
                                         <td className="p-4 text-right text-sm text-gray-500 font-medium line-through">
                                             {formatCurrency(item.grossAmount)}
                                         </td>
-                                        <td className="p-4 text-right text-sm font-bold text-purple-600 bg-purple-50/30">
-                                            +{formatCurrency(item.netAmount)}
+                                        <td className="p-4 text-right bg-purple-50/30">
+                                            <div className="flex flex-col items-end gap-1">
+                                                {/* Số tiền thực nhận */}
+                                                <span className="text-sm font-bold text-purple-600">
+                                                    +{formatCurrency(item.netAmount)}
+                                                </span>
+
+                                                {/* 💡 BADGE TỈ LỆ HOA HỒNG (Chỉ hiện nếu Backend có trả về) */}
+                                                {item.appliedRate !== undefined && (
+                                                    <span
+                                                        className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-purple-200 text-purple-600 shadow-sm"
+                                                        title={`Giảng viên: ${100 - item.appliedRate}% / Admin: ${item.appliedRate}%`}
+                                                    >
+                                                        Tỉ lệ: {100 - item.appliedRate}/{item.appliedRate}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -232,8 +248,8 @@ export default function InstructorDashboard() {
                                         key={page}
                                         onClick={() => setCurrentPage(page)}
                                         className={`w-9 h-9 rounded-lg font-bold text-sm transition ${currentPage === page
-                                                ? 'bg-purple-600 text-white shadow-md'
-                                                : 'text-gray-600 hover:bg-gray-200'
+                                            ? 'bg-purple-600 text-white shadow-md'
+                                            : 'text-gray-600 hover:bg-gray-200'
                                             }`}
                                     >
                                         {page}

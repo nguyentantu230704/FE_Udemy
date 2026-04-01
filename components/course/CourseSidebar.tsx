@@ -201,7 +201,7 @@ export default function CourseSidebar({ course }: Props) {
                     <h4 className="font-bold text-sm text-gray-900">Khóa học này bao gồm:</h4>
                     <ul className="text-sm text-gray-600 space-y-2">
                         <li className="flex items-center gap-2"><Infinity className="w-4 h-4" /> Truy cập trọn đời</li>
-                        <li className="flex items-center gap-2"><Smartphone className="w-4 h-4" /> Truy cập trên mobile và TV</li>
+                        <li className="flex items-center gap-2"><Smartphone className="w-4 h-4" /> Học mọi lúc mọi nơi</li>
                         <li className="flex items-center gap-2"><Award className="w-4 h-4" /> Cấp chứng chỉ hoàn thành</li>
                     </ul>
                 </div>
