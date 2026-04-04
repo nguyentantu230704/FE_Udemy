@@ -1,162 +1,228 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { Loader2, Download, CheckCircle, Award, Share2 } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { useParams } from 'next/navigation';
+import { Loader2, Download, Share2, Award, CheckCircle } from 'lucide-react';
 import axiosClient from '@/utils/axiosClient';
+import toast, { Toaster } from 'react-hot-toast';
+import { toPng } from 'html-to-image';
+import { jsPDF } from 'jspdf';
 
 interface CertificateData {
     certificateId: string;
     studentName: string;
     courseTitle: string;
     instructorName: string;
-    completedAt: string;
+    issueDate: string;
 }
 
 export default function CertificatePage() {
     const params = useParams();
-    const router = useRouter();
-    const [certData, setCertData] = useState<CertificateData | null>(null);
+    const certificateRef = useRef<HTMLDivElement>(null);
+    const [data, setData] = useState<CertificateData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
         const fetchCertificate = async () => {
             try {
-                // Gọi API Public mà chúng ta vừa tạo
-                const { data } = await axiosClient.get(`/progress/certificate/${params.id}`);
-                if (data.success) {
-                    setCertData(data.data);
+                const res = await axiosClient.get(`/progress/certificate/${params.id}`);
+                if (res.data.success) {
+                    setData(res.data.data);
                 }
-            } catch (err: any) {
-                setError(err.response?.data?.message || 'Không tìm thấy chứng chỉ');
+            } catch (error) {
+                toast.error("Không tìm thấy chứng chỉ này!");
             } finally {
                 setLoading(false);
             }
         };
-
-        if (params.id) fetchCertificate();
+        fetchCertificate();
     }, [params.id]);
 
-    const formatDate = (dateString: string) => {
+    // Format ngày tháng an toàn tránh NaN
+    const formatDate = (dateString: string | undefined) => {
+        if (!dateString) return "N/A";
         const date = new Date(dateString);
-        return `Ngày ${date.getDate()} tháng ${date.getMonth() + 1} năm ${date.getFullYear()}`;
+        if (isNaN(date.getTime())) return "N/A";
+
+        return date.toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-                <Loader2 className="w-12 h-12 animate-spin text-purple-600 mb-4" />
-                <p className="text-gray-500 font-medium">Đang xác minh chứng chỉ...</p>
-            </div>
-        );
-    }
+    // Xuất PDF bằng công nghệ mới (html-to-image)
+    const handleDownloadPDF = async () => {
+        if (!certificateRef.current || !data) return;
+        setDownloading(true);
+        toast('Đang tạo PDF, vui lòng đợi...', { icon: '⏳' });
 
-    if (error || !certData) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 text-center">
-                <div className="bg-white p-8 rounded-2xl shadow-sm border border-red-100 max-w-md w-full">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-2xl">❌</span>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Chứng chỉ không hợp lệ</h2>
-                    <p className="text-gray-500 mb-6">{error}</p>
-                    <button onClick={() => router.push('/')} className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 transition">
-                        Về trang chủ
-                    </button>
-                </div>
-            </div>
-        );
-    }
+        try {
+            // Chụp ảnh bằng html-to-image thay vì html2canvas
+            const imgData = await toPng(certificateRef.current, {
+                quality: 1.0,
+                pixelRatio: 3, // Giữ độ nét cao (tương đương scale: 3)
+                backgroundColor: '#ffffff'
+            });
+
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // Tự động tính toán tỷ lệ ảnh chuẩn xác
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            // Chèn ảnh dạng PNG vào file PDF
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Chung-chi-${data.studentName.replace(/\s+/g, '-')}.pdf`);
+
+            toast.success("Tải xuống thành công!");
+        } catch (error) {
+            console.error("Lỗi xuất PDF:", error);
+            toast.error("Có lỗi xảy ra khi tạo PDF");
+        } finally {
+            setDownloading(false);
+        }
+    };
+
+    const handleCopyLink = () => {
+        navigator.clipboard.writeText(window.location.href);
+        toast.success("Đã copy link chứng chỉ!");
+    };
+
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="w-10 h-10 animate-spin text-purple-600" /></div>;
+    if (!data) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-xl font-bold text-gray-500">Không tìm thấy chứng chỉ</div>;
 
     return (
-        <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6">
-            <div className="max-w-5xl mx-auto flex flex-col items-center">
+        <div className="min-h-screen bg-gray-100 py-10 px-4 font-sans flex flex-col items-center">
+            <Toaster />
 
-                {/* THANH CÔNG CỤ (In / Chia sẻ) */}
-                <div className="w-full flex justify-between items-center mb-6 px-4">
-                    <button onClick={() => router.push('/')} className="text-gray-500 hover:text-gray-900 font-medium transition">
-                        &larr; Về trang chủ
+            {/* Thanh công cụ */}
+            <div className="max-w-5xl w-full bg-white p-4 rounded-xl shadow-sm mb-8 flex flex-col sm:flex-row justify-between items-center gap-4 border border-gray-200">
+                <div className="flex items-center gap-2 text-green-700 font-bold bg-green-50 px-4 py-2 rounded-lg border border-green-200">
+                    <CheckCircle className="w-5 h-5" /> Đã xác thực trên hệ thống
+                </div>
+                <div className="flex gap-3 w-full sm:w-auto">
+                    <button onClick={handleCopyLink} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg transition border border-gray-300">
+                        <Share2 className="w-4 h-4" /> Chia sẻ
                     </button>
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => window.print()}
-                            className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition font-bold shadow-sm"
-                        >
-                            <Download className="w-4 h-4" /> Tải PDF
-                        </button>
-                        <button
-                            onClick={() => {
-                                navigator.clipboard.writeText(window.location.href);
-                                alert('Đã copy link chứng chỉ!');
-                            }}
-                            className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition font-bold shadow-sm"
-                        >
-                            <Share2 className="w-4 h-4" /> Chia sẻ
-                        </button>
-                    </div>
+                    <button
+                        onClick={handleDownloadPDF}
+                        disabled={downloading}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-lg transition shadow-md"
+                    >
+                        {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        {downloading ? 'Đang xuất...' : 'Tải PDF về máy'}
+                    </button>
                 </div>
-
-                {/* KHUNG CHỨNG CHỈ */}
-                {/* CSS print để tối ưu khi bấm tải PDF */}
-                <div className="w-full bg-white p-2 rounded shadow-2xl overflow-hidden print:shadow-none print:p-0">
-                    <div className="border-[12px] border-double border-purple-200 p-8 md:p-16 text-center relative bg-white">
-
-                        {/* Họa tiết trang trí */}
-                        <div className="absolute top-0 left-0 w-32 h-32 border-t-8 border-l-8 border-purple-600 opacity-20 m-4"></div>
-                        <div className="absolute bottom-0 right-0 w-32 h-32 border-b-8 border-r-8 border-purple-600 opacity-20 m-4"></div>
-
-                        {/* Nội dung */}
-                        <div className="mb-8 flex justify-center">
-                            <Award className="w-20 h-20 text-yellow-500" />
-                        </div>
-
-                        <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4 uppercase tracking-normal" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
-                            GIẤY CHỨNG NHẬN
-                        </h1>
-                        <p className="text-lg text-gray-500 uppercase tracking-widest mb-12 font-bold">
-                            Hoàn Thành Khóa Học
-                        </p>
-
-                        <p className="text-gray-600 text-lg mb-2">Chứng nhận học viên:</p>
-                        <h2 className="text-4xl md:text-5xl font-bold text-purple-700 mb-8 italic">
-                            {certData.studentName}
-                        </h2>
-
-                        <p className="text-gray-600 text-lg mb-2">Đã hoàn thành xuất sắc khóa học:</p>
-                        <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-16">
-                            {certData.courseTitle}
-                        </h3>
-
-                        {/* Chữ ký & Ngày tháng */}
-                        <div className="flex justify-between items-end px-4 md:px-20 mt-8">
-                            <div className="text-center">
-                                <p className="text-gray-500 italic mb-2">{formatDate(certData.completedAt)}</p>
-                                <div className="w-40 h-px bg-gray-400 mx-auto mb-2"></div>
-                                <p className="font-bold text-gray-800">Ngày cấp</p>
-                            </div>
-
-                            <div className="text-center flex flex-col items-center">
-                                {/* Huy hiệu xác nhận góc phải */}
-                                <div className="w-24 h-24 mb-4 relative flex items-center justify-center">
-                                    <div className="absolute inset-0 bg-yellow-100 rounded-full border-2 border-yellow-400 border-dashed animate-[spin_10s_linear_infinite]"></div>
-                                    <CheckCircle className="w-10 h-10 text-yellow-600 z-10" />
-                                </div>
-                                <p className="font-bold text-gray-800">{certData.instructorName}</p>
-                                <p className="text-gray-500 text-sm">Giảng viên hướng dẫn</p>
-                            </div>
-                        </div>
-
-                        {/* Mã tra cứu */}
-                        <div className="absolute bottom-4 left-0 right-0 text-center">
-                            <p className="text-xs text-gray-400 font-mono">
-                                ID Tra cứu: {certData.certificateId} | Xác minh tại: {window.location.host}/certificate/{certData.certificateId}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
             </div>
+
+            {/* VÙNG CHỨA CHỨNG CHỈ */}
+            <div className="w-full max-w-5xl overflow-x-auto pb-10 flex justify-center custom-scrollbar">
+
+                {/* Bản thiết kế chuẩn A4 ngang (1123x794) */}
+                <div
+                    ref={certificateRef}
+                    className="relative bg-white text-gray-900 flex flex-col justify-between shrink-0 overflow-hidden"
+                    style={{
+                        width: '1123px',
+                        height: '794px',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+                    }}
+                >
+                    {/* HỌA TIẾT VIỀN (Border Pattern) */}
+                    <div className="absolute inset-0 m-6 border-[6px] border-double border-gray-300 rounded-sm pointer-events-none z-0"></div>
+                    <div className="absolute inset-0 m-8 border border-gray-200 rounded-sm pointer-events-none z-0"></div>
+
+                    {/* Watermark mờ ở giữa */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-5 z-0 pointer-events-none">
+                        <Award className="w-96 h-96 text-gray-900" />
+                    </div>
+
+                    {/* NỘI DUNG CHÍNH (Nằm đè lên viền - z-10) */}
+                    <div className="relative z-10 flex flex-col h-full p-16">
+
+                        {/* HEADER: Logo & Tên nền tảng */}
+                        <div className="flex justify-between items-start mb-8">
+                            <div className="flex items-center gap-3">
+                                <div className="w-16 h-16 bg-purple-700 rounded-xl flex items-center justify-center text-white shadow-lg">
+                                    <Award className="w-10 h-10" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-black tracking-widest uppercase text-gray-800">SmartLMS</h2>
+                                    <p className="text-sm text-gray-500 font-medium uppercase tracking-widest">Education Platform</p>
+                                </div>
+                            </div>
+                            <div className="text-right flex flex-col items-end">
+                                <div className="w-20 h-20 border-4 border-yellow-500 rounded-full flex items-center justify-center">
+                                    <Award className="w-10 h-10 text-yellow-600" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* BODY: Thông tin chứng chỉ */}
+                        <div className="text-center my-auto px-20">
+                            <h1 className="text-5xl font-serif text-gray-800 uppercase tracking-widest mb-6 border-b border-gray-300 pb-4 inline-block">
+                                Chứng Nhận Hoàn Thành
+                            </h1>
+                            <p className="text-xl text-gray-600 mb-4 font-medium">
+                                Chứng nhận này được SMARTLMS trao tặng cho
+                            </p>
+
+                            {/* Tên học viên */}
+                            <h2 className="text-7xl font-bold text-gray-900 mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                {data.studentName}
+                            </h2>
+
+                            <p className="text-xl text-gray-600 mb-2 font-medium">
+                                hoàn thành toàn bộ chương trình của khóa học
+                            </p>
+
+                            {/* Tên khóa học */}
+                            <h3 className="text-3xl font-bold text-purple-800 max-w-3xl mx-auto leading-tight">
+                                {data.courseTitle}
+                            </h3>
+                        </div>
+
+                        {/* FOOTER: Chữ ký, Ngày tháng & Mã tra cứu */}
+                        <div className="flex justify-between items-end mt-12">
+
+                            {/* Ngày cấp & Mã tra cứu (Góc trái) */}
+                            <div className="text-left w-64">
+                                <p className="text-lg font-bold text-gray-800 mb-2 border-b border-gray-300 pb-1 inline-block min-w-[150px]">
+                                    {formatDate(data.issueDate)}
+                                </p>
+                                <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Ngày cấp</p>
+                                <div className="mt-4 text-xs text-gray-400 font-mono bg-gray-50 p-2 rounded border border-gray-100 inline-block">
+                                    ID: {data.certificateId}
+                                </div>
+                            </div>
+
+                            {/* Chữ ký Giảng viên (Góc phải) */}
+                            <div className="text-center w-64">
+                                {/* Font chữ ký giả lập (Tạo cảm giác viết tay) */}
+                                <div
+                                    className="text-5xl text-gray-800 opacity-90 mb-1 -rotate-3"
+                                    style={{ fontFamily: "'Brush Script MT', 'Cedarville Cursive', cursive" }}
+                                >
+                                    {data.instructorName}
+                                </div>
+                                <div className="border-t border-gray-400 pt-2 mx-auto w-full">
+                                    <p className="text-lg font-bold text-gray-800">{data.instructorName}</p>
+                                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mt-1">Giảng viên hướng dẫn</p>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     );
 }

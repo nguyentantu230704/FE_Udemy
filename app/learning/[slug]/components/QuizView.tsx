@@ -5,11 +5,11 @@ import { IQuizQuestion } from '@/types';
 
 interface Props {
     questions: IQuizQuestion[];
-    onPass: () => void;
-    passPercent?: number; // <-- 1. Thêm Prop này
+    // 💡 SỬA: onPass bây giờ bắt buộc trả về một con số (điểm)
+    onPass: (score: number) => void;
+    passPercent?: number;
 }
 
-// 2. Nhận passPercent từ parent, nếu parent không truyền thì mặc định là 80
 export default function QuizView({ questions, onPass, passPercent = 80 }: Props) {
     const [answers, setAnswers] = useState<number[]>(new Array(questions.length).fill(-1));
     const [submitted, setSubmitted] = useState(false);
@@ -31,9 +31,9 @@ export default function QuizView({ questions, onPass, passPercent = 80 }: Props)
         setScore(finalScore);
         setSubmitted(true);
 
-        // 3. Thay thế toàn bộ số 80 cứng nhắc thành biến passPercent
         if (finalScore >= passPercent) {
-            onPass();
+            // 💡 QUAN TRỌNG: Gửi điểm số lên component cha
+            onPass(finalScore);
             toast.success(`Xuất sắc! Bạn đạt ${finalScore}%`);
         } else {
             toast.error(`Bạn đạt ${finalScore}%. Cần tối thiểu ${passPercent}% để qua bài.`);
@@ -53,7 +53,6 @@ export default function QuizView({ questions, onPass, passPercent = 80 }: Props)
                     <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                         <HelpCircle className="text-purple-600" /> Bài kiểm tra kiến thức
                     </h2>
-                    {/* Hiển thị yêu cầu điểm đỗ cho học viên biết */}
                     <span className="bg-purple-100 text-purple-700 text-sm font-bold px-3 py-1 rounded-full">
                         Học viên đạt khi làm đúng: {passPercent}%
                     </span>

@@ -22,7 +22,8 @@ export default function ProfilePage() {
         name: '',
         avatar: '',
         headline: '',
-        bio: ''
+        bio: '',
+        phone: ''
     });
 
     // State xử lý ảnh
@@ -40,7 +41,8 @@ export default function ProfilePage() {
                         name: u.name || '',
                         avatar: u.avatar || '', // Link ảnh từ DB
                         headline: u.headline || '',
-                        bio: u.bio || ''
+                        bio: u.bio || '',
+                        phone: u.phone || ''
                     });
                 }
             } catch (error) {
@@ -80,6 +82,7 @@ export default function ProfilePage() {
             payload.append('name', formData.name);
             payload.append('headline', formData.headline);
             payload.append('bio', formData.bio);
+            payload.append('phone', formData.phone);
 
             if (selectedFile) {
                 payload.append('avatar', selectedFile);
@@ -234,6 +237,17 @@ export default function ProfilePage() {
                                     required
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Số điện thoại/zalo liên hệ</label>
+                            <input
+                                type="text"
+                                value={formData.phone}
+                                onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                placeholder="098xxx..."
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
                         </div>
 
                         {/* Headline */}

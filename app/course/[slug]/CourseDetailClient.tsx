@@ -1,6 +1,7 @@
 // Tệp: app/course/[slug]/CourseDetailClient.tsx
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { Star, AlertCircle, Check, Globe, BookOpen } from 'lucide-react';
 import { ICourse } from '@/types';
@@ -92,9 +93,13 @@ export default function CourseDetailClient({ initialCourse }: Props) {
                         </div>
 
                         <div className="text-sm text-gray-300">
-                            Được tạo bởi <span className="text-purple-300 hover:text-purple-200 underline cursor-pointer font-medium ml-1">
+                            Được tạo bởi{' '}
+                            <Link
+                                href={`/profile/${instructorId}`}
+                                className="text-purple-300 hover:text-purple-200 underline cursor-pointer font-medium ml-1"
+                            >
                                 {instructorName}
-                            </span>
+                            </Link>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-6 text-sm text-white font-medium pt-2">
@@ -177,9 +182,11 @@ export default function CourseDetailClient({ initialCourse }: Props) {
                                 </div>
 
                                 <div className="flex-1">
-                                    <h3 className="font-bold text-xl text-purple-700 hover:underline cursor-pointer mb-1">
-                                        {instructorName}
-                                    </h3>
+                                    <Link href={`/profile/${instructorId}`}>
+                                        <h3 className="font-bold text-xl text-purple-700 hover:underline cursor-pointer mb-1 inline-block">
+                                            {instructorName}
+                                        </h3>
+                                    </Link>
                                     <p className="text-gray-500 text-sm font-medium mb-4">
                                         {instructorHeadline || 'Giảng viên'}
                                     </p>

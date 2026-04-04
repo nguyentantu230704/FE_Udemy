@@ -61,8 +61,23 @@ export default function CourseBasicInfo({
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Giá bán (VND)</label>
-                            {isEditing ? <input type="number" min="0" step="500000" value={formData.price} onChange={e => setFormData({ ...formData, price: Number(e.target.value) })} className="w-full p-2 border border-gray-300 rounded focus:ring-purple-500 focus:border-purple-500" /> : <p className="text-lg font-bold text-purple-600">{course.price.toLocaleString('vi-VN')} đ</p>}
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                                Giá bán (VND) <span className="text-purple-500 lowercase font-medium ml-1">(Nhập 0 để miễn phí)</span>
+                            </label>
+                            {isEditing ? (
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="50000"
+                                    value={formData.price}
+                                    onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
+                                    className="w-full p-2 border border-gray-300 rounded focus:ring-purple-500 focus:border-purple-500"
+                                />
+                            ) : (
+                                <p className={`text-lg font-bold ${course.price === 0 ? 'text-green-600 uppercase' : 'text-purple-600'}`}>
+                                    {course.price === 0 ? 'Miễn phí' : `${course.price.toLocaleString('vi-VN')} đ`}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Danh mục</label>

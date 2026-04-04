@@ -6,15 +6,12 @@ import { Loader2, BookOpen, PlayCircle, Search, AlertCircle, Award } from 'lucid
 import axiosClient from '@/utils/axiosClient';
 import { ICourse } from '@/types';
 
-// Định nghĩa kiểu dữ liệu cho các Tab
 type TabType = 'all' | 'in-progress' | 'completed';
 
 export default function MyCoursesPage() {
     const [courses, setCourses] = useState<ICourse[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-
-    // --- 1. STATE MỚI: THEO DÕI TAB ĐANG MỞ ---
     const [activeTab, setActiveTab] = useState<TabType>('all');
 
     useEffect(() => {
@@ -34,7 +31,6 @@ export default function MyCoursesPage() {
         fetchMyCourses();
     }, []);
 
-    // --- 2. NÂNG CẤP BỘ LỌC KÉP (Tìm kiếm + Tab) ---
     const filteredCourses = courses
         .filter(course => course && course._id)
         .filter(course => course.title?.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -42,7 +38,7 @@ export default function MyCoursesPage() {
             const progress = (course as any).progress || 0;
             if (activeTab === 'in-progress') return progress < 100;
             if (activeTab === 'completed') return progress === 100;
-            return true; // Nếu là 'all' thì trả về tất cả
+            return true;
         });
 
     const getLearnLink = (course: ICourse) => {
@@ -80,25 +76,16 @@ export default function MyCoursesPage() {
                 </div>
             </div>
 
-            {/* --- 3. KHU VỰC TABS TƯƠNG TÁC ĐƯỢC --- */}
+            {/* Tabs */}
             <div className="border-b border-gray-200 bg-white sticky top-0 z-10 shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-8 overflow-x-auto">
-                    <button
-                        onClick={() => setActiveTab('all')}
-                        className={`py-4 font-bold whitespace-nowrap transition-colors border-b-2 ${activeTab === 'all' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-black'}`}
-                    >
+                    <button onClick={() => setActiveTab('all')} className={`py-4 font-bold whitespace-nowrap transition-colors border-b-2 ${activeTab === 'all' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-black'}`}>
                         Tất cả khóa học
                     </button>
-                    <button
-                        onClick={() => setActiveTab('in-progress')}
-                        className={`py-4 font-bold whitespace-nowrap transition-colors border-b-2 ${activeTab === 'in-progress' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-black'}`}
-                    >
+                    <button onClick={() => setActiveTab('in-progress')} className={`py-4 font-bold whitespace-nowrap transition-colors border-b-2 ${activeTab === 'in-progress' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-black'}`}>
                         Đang học
                     </button>
-                    <button
-                        onClick={() => setActiveTab('completed')}
-                        className={`py-4 font-bold whitespace-nowrap transition-colors border-b-2 ${activeTab === 'completed' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-black'}`}
-                    >
+                    <button onClick={() => setActiveTab('completed')} className={`py-4 font-bold whitespace-nowrap transition-colors border-b-2 ${activeTab === 'completed' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-black'}`}>
                         Đã hoàn thành
                     </button>
                 </div>
@@ -111,21 +98,15 @@ export default function MyCoursesPage() {
                         {filteredCourses.map((course) => (
                             <div key={course._id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col group h-full relative">
 
-                                {/* Huy hiệu hoàn thành nếu progress = 100 */}
                                 {(course as any).progress === 100 && (
                                     <div className="absolute top-2 right-2 z-10 bg-green-500 text-white p-1.5 rounded-full shadow-md" title="Đã hoàn thành">
                                         <Award className="w-5 h-5" />
                                     </div>
                                 )}
 
-                                {/* Thumbnail Link */}
                                 <Link href={getLearnLink(course)} className="relative aspect-video overflow-hidden bg-gray-100 block">
                                     {course.thumbnail?.url ? (
-                                        <img
-                                            src={course.thumbnail.url}
-                                            alt={course.title}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                        />
+                                        <img src={course.thumbnail.url} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center">
                                             <BookOpen className="w-12 h-12 text-gray-300" />
@@ -136,7 +117,6 @@ export default function MyCoursesPage() {
                                     </div>
                                 </Link>
 
-                                {/* Content */}
                                 <div className="p-4 flex flex-col flex-1">
                                     <h3 className="font-bold text-gray-900 line-clamp-2 mb-1 min-h-[3rem]">
                                         <Link href={getLearnLink(course)} className="hover:text-purple-600 transition">
@@ -145,72 +125,65 @@ export default function MyCoursesPage() {
                                     </h3>
 
                                     <p className="text-xs text-gray-500 mb-4 truncate">
-                                        Giảng viên: {
-                                            course.instructor && typeof course.instructor === 'object'
-                                                ? (course.instructor as any).name
-                                                : 'SmartLMS Instructor'
-                                        }
+                                        Giảng viên: {course.instructor && typeof course.instructor === 'object' ? (course.instructor as any).name : 'SmartLMS Instructor'}
                                     </p>
 
-                                    {/* Progress Bar & Button */}
+                                    {/* Progress Bar & Nút Hành Động */}
                                     <div className="mt-auto">
                                         <div className="flex justify-between text-xs text-gray-500 mb-1">
                                             <span>Tiến độ</span>
-                                            <span className="font-bold text-purple-600">
-                                                {(course as any).progress || 0}%
-                                            </span>
+                                            <span className="font-bold text-purple-600">{(course as any).progress || 0}%</span>
                                         </div>
 
                                         <div className="w-full bg-gray-100 rounded-full h-1.5 mb-4 overflow-hidden">
-                                            <div
-                                                className="bg-purple-600 h-1.5 rounded-full transition-all duration-500"
-                                                style={{ width: `${(course as any).progress || 0}%` }}
-                                            ></div>
+                                            <div className="bg-purple-600 h-1.5 rounded-full transition-all duration-500" style={{ width: `${(course as any).progress || 0}%` }}></div>
                                         </div>
 
-                                        <Link
-                                            href={getLearnLink(course)}
-                                            className={`block w-full text-center py-2.5 font-bold text-sm rounded transition shadow-sm hover:shadow ${(course as any).progress === 100
-                                                ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
-                                                : 'bg-purple-600 text-white hover:bg-purple-700'
-                                                }`}
-                                        >
-                                            {(course as any).progress === 100 ? 'Học lại' : 'Vào học ngay'}
-                                        </Link>
+                                        {/* 💡 LOGIC NÚT BẤM THÔNG MINH */}
+                                        {(course as any).progress === 100 ? (
+                                            <div className="flex gap-2">
+                                                <Link
+                                                    href={getLearnLink(course)}
+                                                    className="flex-1 bg-green-50 text-green-700 border border-green-200 text-center py-2.5 font-bold text-sm rounded hover:bg-green-100 transition shadow-sm"
+                                                >
+                                                    Học lại
+                                                </Link>
+                                                {/* Hiển thị nút Xem Chứng Chỉ nếu Backend trả về certificateId */}
+                                                {(course as any).certificateId && (
+                                                    <button
+                                                        onClick={() => window.open(`/certificate/${(course as any).certificateId}`, '_blank')}
+                                                        className="flex-1 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-center py-2.5 font-bold text-sm rounded hover:from-yellow-500 hover:to-yellow-600 transition shadow-sm flex items-center justify-center gap-1"
+                                                    >
+                                                        <Award className="w-4 h-4" /> Chứng chỉ
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <Link
+                                                href={getLearnLink(course)}
+                                                className="block w-full bg-purple-600 text-white text-center py-2.5 font-bold text-sm rounded hover:bg-purple-700 transition shadow-sm"
+                                            >
+                                                Vào học ngay
+                                            </Link>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    // --- 4. THÔNG BÁO RỖNG THÔNG MINH ---
                     <div className="text-center py-20 bg-white rounded-lg shadow-sm border border-gray-200">
                         <div className="flex justify-center mb-4">
                             {searchTerm ? <AlertCircle className="w-16 h-16 text-gray-300" /> : <BookOpen className="w-16 h-16 text-gray-300" />}
                         </div>
                         <h3 className="text-xl font-bold text-gray-900 mb-2">
-                            {searchTerm
-                                ? 'Không tìm thấy kết quả nào'
-                                : activeTab === 'completed'
-                                    ? 'Bạn chưa hoàn thành khóa học nào'
-                                    : activeTab === 'in-progress'
-                                        ? 'Bạn không có khóa học nào đang học dở'
-                                        : 'Bạn chưa đăng ký khóa học nào'
-                            }
+                            {searchTerm ? 'Không tìm thấy kết quả nào' : activeTab === 'completed' ? 'Bạn chưa hoàn thành khóa học nào' : activeTab === 'in-progress' ? 'Bạn không có khóa học nào đang học dở' : 'Bạn chưa đăng ký khóa học nào'}
                         </h3>
                         <p className="text-gray-500 mb-6">
-                            {searchTerm
-                                ? `Không có khóa học nào khớp với "${searchTerm}"`
-                                : activeTab === 'completed'
-                                    ? 'Hãy tiếp tục cố gắng để nhận được những chứng chỉ đầu tiên nhé!'
-                                    : 'Hãy khám phá các khóa học thú vị ngay hôm nay.'
-                            }
+                            {searchTerm ? `Không có khóa học nào khớp với "${searchTerm}"` : activeTab === 'completed' ? 'Hãy tiếp tục cố gắng để nhận được những chứng chỉ đầu tiên nhé!' : 'Hãy khám phá các khóa học thú vị ngay hôm nay.'}
                         </p>
                         {activeTab !== 'completed' && (
-                            <Link
-                                href="/"
-                                className="bg-purple-600 text-white px-6 py-3 rounded-md font-bold hover:bg-purple-700 transition inline-block"
-                            >
+                            <Link href="/" className="bg-purple-600 text-white px-6 py-3 rounded-md font-bold hover:bg-purple-700 transition inline-block">
                                 Khám phá khóa học mới
                             </Link>
                         )}

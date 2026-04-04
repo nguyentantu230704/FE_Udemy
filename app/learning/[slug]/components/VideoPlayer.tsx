@@ -1,5 +1,6 @@
 import { useRef, forwardRef, useImperativeHandle, useEffect, useState } from 'react';
-import { FastForward, Rewind, Play, Pause } from 'lucide-react'; // 💡 1. Import thêm các Icon đẹp mắt
+import { FastForward, Rewind, Play, Pause } from 'lucide-react';
+import Hls from 'hls.js';
 
 export interface VideoPlayerRef {
     getCurrentTime: () => number;
@@ -14,8 +15,6 @@ interface Props {
 
 const VideoPlayer = forwardRef<VideoPlayerRef, Props>(({ videoUrl, lessonId, onEnded }, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null);
-
-    // 💡 2. State để quản lý hiệu ứng hiển thị Icon (Lưu loại icon và ID để animation chạy mượt khi bấm liên tục)
     const [indicator, setIndicator] = useState<{ type: 'forward' | 'rewind' | 'play' | 'pause', id: number } | null>(null);
 
     useImperativeHandle(ref, () => ({
@@ -30,12 +29,33 @@ const VideoPlayer = forwardRef<VideoPlayerRef, Props>(({ videoUrl, lessonId, onE
         }
     }));
 
+    // 💡 TÍCH HỢP BỘ GIẢI MÃ HLS (CHIA NHỎ VIDEO)
+    useEffect(() => {
+        let hls: Hls;
+
+        if (videoRef.current && videoUrl) {
+            const video = videoRef.current;
+
+            if (Hls.isSupported()) {
+                hls = new Hls({ maxBufferLength: 30 });
+                hls.loadSource(videoUrl);
+                hls.attachMedia(video);
+            }
+            else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = videoUrl;
+            }
+        }
+
+        return () => {
+            if (hls) hls.destroy();
+        };
+    }, [videoUrl]);
+
+    // Xử lý lưu tiến độ học tập
     const handleLoadedMetadata = () => {
         if (videoRef.current) {
             const savedTime = localStorage.getItem(`video-progress-${lessonId}`);
-            if (savedTime) {
-                videoRef.current.currentTime = parseFloat(savedTime);
-            }
+            if (savedTime) videoRef.current.currentTime = parseFloat(savedTime);
         }
     };
 
@@ -53,12 +73,11 @@ const VideoPlayer = forwardRef<VideoPlayerRef, Props>(({ videoUrl, lessonId, onE
         onEnded();
     };
 
-    // 💡 3. Bắt sự kiện phím và kích hoạt State Icon
+    // Xử lý phím tắt (Trái, Phải, Space)
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             const activeTag = document.activeElement?.tagName.toLowerCase();
             if (activeTag === 'input' || activeTag === 'textarea') return;
-
             if (!videoRef.current) return;
 
             if (e.key === 'ArrowRight') {
@@ -70,18 +89,11 @@ const VideoPlayer = forwardRef<VideoPlayerRef, Props>(({ videoUrl, lessonId, onE
                 setIndicator({ type: 'rewind', id: Date.now() });
             }
             else if (e.key === ' ') {
-                // 💡 SỬA TẠI ĐÂY: Xử lý xung đột phím Space
                 if (e.target === videoRef.current) {
-                    // Trình duyệt ĐÃ TỰ XỬ LÝ play/pause rồi.
-                    // Chúng ta KHÔNG ngăn chặn (preventDefault) và KHÔNG đảo state nữa.
-                    // Chỉ cần delay 10 mili-giây để lấy chính xác trạng thái mới của video và hiện Icon.
                     setTimeout(() => {
-                        if (videoRef.current) {
-                            setIndicator({ type: videoRef.current.paused ? 'pause' : 'play', id: Date.now() });
-                        }
+                        if (videoRef.current) setIndicator({ type: videoRef.current.paused ? 'pause' : 'play', id: Date.now() });
                     }, 10);
                 } else {
-                    // Đang click ra ngoài màn hình trắng: Code của chúng ta phải tự xử lý từ A-Z
                     e.preventDefault();
                     if (videoRef.current.paused) {
                         videoRef.current.play();
@@ -98,38 +110,27 @@ const VideoPlayer = forwardRef<VideoPlayerRef, Props>(({ videoUrl, lessonId, onE
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // 💡 4. Tự động ẩn Icon sau 500ms
     useEffect(() => {
         if (indicator) {
-            const timer = setTimeout(() => {
-                setIndicator(null);
-            }, 500); // Hiển thị nửa giây rồi biến mất
-            return () => clearTimeout(timer); // Xóa timer nếu người dùng bấm phím liên tục
+            const timer = setTimeout(() => setIndicator(null), 500);
+            return () => clearTimeout(timer);
         }
     }, [indicator]);
 
     return (
-        // Thêm class relative và overflow-hidden để chứa cái Icon bay lên
-        <div className="relative w-full bg-black aspect-video flex items-center justify-center shadow-md overflow-hidden">
-
-            {/* 💡 5. Khu vực hiển thị Hiệu ứng (Overlay) */}
+        <div
+            // KHÓA CẤP ĐỘ 1: Không bôi đen, chặn chuột phải
+            className="relative w-full bg-black aspect-video flex items-center justify-center shadow-md overflow-hidden select-none"
+            onContextMenu={(e) => e.preventDefault()}
+        >
+            {/* Hiển thị Icon khi bấm phím tắt */}
             {indicator && (
                 <div
-                    key={indicator.id} // Dùng Date.now() làm key để ép CSS animation chạy lại từ đầu mỗi lần bấm phím
+                    key={indicator.id}
                     className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center justify-center bg-black/60 text-white rounded-full w-24 h-24 pointer-events-none animate-in fade-in zoom-in duration-200"
                 >
-                    {indicator.type === 'forward' && (
-                        <>
-                            <FastForward className="w-10 h-10 mb-1" />
-                            <span className="text-sm font-bold">+5s</span>
-                        </>
-                    )}
-                    {indicator.type === 'rewind' && (
-                        <>
-                            <Rewind className="w-10 h-10 mb-1" />
-                            <span className="text-sm font-bold">-5s</span>
-                        </>
-                    )}
+                    {indicator.type === 'forward' && <><FastForward className="w-10 h-10 mb-1" /><span className="text-sm font-bold">+5s</span></>}
+                    {indicator.type === 'rewind' && <><Rewind className="w-10 h-10 mb-1" /><span className="text-sm font-bold">-5s</span></>}
                     {indicator.type === 'play' && <Play className="w-12 h-12 ml-1" />}
                     {indicator.type === 'pause' && <Pause className="w-12 h-12" />}
                 </div>
@@ -137,10 +138,10 @@ const VideoPlayer = forwardRef<VideoPlayerRef, Props>(({ videoUrl, lessonId, onE
 
             <video
                 ref={videoRef}
-                src={videoUrl}
                 controls
                 autoPlay
                 className="w-full h-full max-h-[75vh]"
+                // KHÓA CẤP ĐỘ 1: Ẩn nút tải xuống của trình duyệt
                 controlsList="nodownload"
                 onLoadedMetadata={handleLoadedMetadata}
                 onTimeUpdate={handleTimeUpdate}
